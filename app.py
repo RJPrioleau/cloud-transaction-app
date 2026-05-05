@@ -1,9 +1,14 @@
-from flask import Flask, request
-from transaction_processor import process_transactions
 import os
-from openpyxl import load_workbook
 import gspread
+import csv
+import webbrowser
+from transaction_processor import process_transactions
+from flask import Flask, request, render_template, send_from_directory
+from openpyxl import load_workbook
+from datetime import datetime
 from google.oauth2.service_account import Credentials
+
+
 
 def normalize_amount(value):
     value = str(value).replace("$", "").replace(",", "").strip()
@@ -57,6 +62,9 @@ def detect_account_from_filename(filename):
         return "SoFi Checking (2695)"
 
     return None
+
+
+
 @app.route("/upload", methods=["POST"])
 def upload():
     files = request.files.getlist("file")
@@ -67,6 +75,9 @@ def upload():
     month = request.form["month"]
 
     upload_folder = "uploads"
+    report_folder = "reports"
+    os.makedirs(report_folder, exist_ok=True)
+
 
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
@@ -197,12 +208,143 @@ def upload():
 
     destination_wb.save(destination_path)
 
-    return (
-        f"Processed {len(all_transactions)} transactions from {len(files)} file(s) into {month}.<br>"
-        f"Added: {len(new_transactions)}<br>"
-        f"Skipped duplicates: {len(duplicate_transactions)}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_filename = f"transaction_report_{month}_{timestamp}.csv"
+    report_path = os.path.join(report_folder, report_filename)
+
+    report_html = (
+        f"<p>Processed {len(all_transactions)} transactions from {len(files)} file(s) into {month}.</p>"
+        f"<p>Added: {len(new_transactions)}<br>"
+        f"Skipped duplicates: {len(duplicate_transactions)}</p>"
+        f"<h3>Added Transactions</h3>"
+        f"<table>"
+        f"<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
     )
 
+    for item in new_transactions:
+        report_html += (
+            f"<tr>"
+            f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
+            f"<td>{float(item['amount']):.2f}</td>"
+            f"<td>{item['account']}</td>"
+            f"<td>{item['description']}</td>"
+            f"</tr>"
+        )
+
+    report_html += "</table>"
+
+    report_html += "<h3>Skipped Duplicates</h3>"
+    report_html += (
+        "<table>"
+        "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+    )
+
+    for item in duplicate_transactions:
+        report_html += (
+            f"<tr>"
+            f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
+            f"<td>{float(item['amount']):.2f}</td>"
+            f"<td>{item['account']}</td>"
+            f"<td>{item['description']}</td>"
+            f"</tr>"
+        )
+
+    report_html += "</table>"
+
+    with open(report_path, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+
+        # Header
+        writer.writerow(["Status", "Date", "Amount", "Account", "Description"])
+
+        # Added transactions
+        for item in new_transactions:
+            writer.writerow([
+                "ADDED",
+                item["date"].strftime("%m/%d/%Y"),
+                f"{float(item['amount']):.2f}",
+                item["account"],
+                item["description"],
+            ])
+
+        # Duplicate transactions
+        for item in duplicate_transactions:
+            writer.writerow([
+                "DUPLICATE",
+                item["date"].strftime("%m/%d/%Y"),
+                f"{float(item['amount']):.2f}",
+                item["account"],
+                item["description"],
+            ])
+
+    report_html += f'<br><a class="button" href="/download/{report_filename}">Download Report</a>'
+
+    return f"""
+    <html>
+    <head>
+        <title>Transaction Report</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                padding: 30px;
+                background-color: #f5f5f5;
+            }}
+            h2 {{
+                color: #333;
+            }}
+            .section {{
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                max-width: 1000px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                margin-bottom: 25px;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #eee
+            }}
+            .button {{
+                display: inline-block;
+                background-color: #333;
+                color: white;
+                padding: 10px 14px;
+                text-decoration: none;
+                border-radius: 6px;
+                margin-top: 10px;
+            }}
+            .button:hover {{
+                background-color: #555;
+            }}
+        </style>
+    </head>
+    <body>
+
+    <h2>Transaction Report</h2>
+
+    <div class="section">
+    {report_html}
+    </div>
+
+    </body>
+    </html>
+    """
+
+@app.route("/download/<filename>")
+def download_file(filename):
+    return send_from_directory("reports", filename, as_attachment=True)
+
 if __name__ == "__main__":
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        webbrowser.open("http://127.0.0.1:5000")
+
     app.run(debug=True)
 
