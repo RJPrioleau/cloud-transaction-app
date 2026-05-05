@@ -2,6 +2,9 @@ from flask import Flask, request
 from transaction_processor import process_transactions
 import os
 from openpyxl import load_workbook
+import gspread
+from google.oauth2.service_account import Credentials
+
 
 app = Flask(__name__)
 
@@ -81,6 +84,31 @@ def upload():
         all_transactions.extend(transactions)
     all_transactions.sort(key=lambda item: item["date"])
 
+    SCOPES = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+
+    creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    client = gspread.authorize(creds)
+
+    sheet = client.open("ANNUAL-BUDGET 2026 (MAR - Present)")
+    worksheet = sheet.worksheet(month)
+
+    main_destination_row = 69
+
+    while worksheet.acell(f"H{main_destination_row}").value:
+        main_destination_row += 1
+
+    for item in all_transactions:
+        worksheet.update([[item["date"].strftime("%m/%d/%Y")]], f"H{main_destination_row}")
+        worksheet.update([[item["budget_name"]]], f"I{main_destination_row}")
+        worksheet.update([[item["amount"]]], f"K{main_destination_row}")
+        worksheet.update([[item["account"]]], f"O{main_destination_row}")
+        worksheet.update([[item["description"]]], f"P{main_destination_row}")
+
+        main_destination_row += 1
+
     destination_path = os.path.join(
         r"C:\Users\Jaypr\iCloudDrive\coding_Lessons_And_Examples\Automate_The_Boring_Stuff\BudgetSheetProject",
         "ANNUAL-BUDGET 2026 (MAR - Present).xlsx"
@@ -105,7 +133,7 @@ def upload():
 
     destination_wb.save(destination_path)
 
-    return f"Collected {len(all_transactions)} transactions from {len(files)} file(s) into {month}."
+    return f"Processed {len(all_transactions)} transactions from {len(files)} file(s) into {month}."
 
 if __name__ == "__main__":
     app.run(debug=True)

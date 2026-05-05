@@ -295,8 +295,8 @@ def process_transactions(source_file, account_name, destination_sheet_name):
 
             transaction_key = (date_value, amount_value, description_text)
 
-            if transaction_key in existing_transactions:
-                continue
+            #if transaction_key in existing_transactions:
+             #   continue
 
             budget_name = "MISC"
 
@@ -351,8 +351,8 @@ def process_transactions(source_file, account_name, destination_sheet_name):
 
             transaction_key = (date_value, amount_value, description_text)
 
-            if transaction_key in existing_transactions:
-                continue
+            #if transaction_key in existing_transactions:
+            #    continue
 
             budget_name = "MISC"
 

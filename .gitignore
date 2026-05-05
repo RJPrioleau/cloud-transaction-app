@@ -4,3 +4,4 @@ __pycache__/
 uploads/
 transaction_processor_backup.py
 .idea/
+credentials.json
