@@ -5,6 +5,14 @@ from openpyxl import load_workbook
 import gspread
 from google.oauth2.service_account import Credentials
 
+def normalize_amount(value):
+    value = str(value).replace("$", "").replace(",", "").strip()
+
+    try:
+        return f"{float(value):.2f}"
+    except ValueError:
+        return value.lower()
+
 
 app = Flask(__name__)
 
@@ -20,6 +28,7 @@ def home():
         <option value="MAR">MAR</option>
         <option value="APR">APR</option>
         <option value="MAY">MAY</option>
+        <option value="TEST">TEST</option>
         <option value="JUN">JUN</option>
         <option value="JUL">JUL</option>
         <option value="AUG">AUG</option>
@@ -84,6 +93,10 @@ def upload():
         all_transactions.extend(transactions)
     all_transactions.sort(key=lambda item: item["date"])
 
+    existing_keys = set()
+    new_transactions = []
+    duplicate_transactions = []
+
     SCOPES = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
@@ -95,19 +108,70 @@ def upload():
     sheet = client.open("ANNUAL-BUDGET 2026 (MAR - Present)")
     worksheet = sheet.worksheet(month)
 
+    existing_keys = set()
+
+    existing_rows = worksheet.get_all_values()
+
+    for row in existing_rows[68:]:
+        if len(row) < 16:
+            continue
+
+        existing_date = row[7]
+        existing_amount = normalize_amount(row[10])
+        existing_account = row[14]
+        existing_description = row[15]
+
+        key = (
+            str(existing_date).strip().lower(),
+            str(existing_amount).strip().lower(),
+            str(existing_account).strip().lower(),
+            str(existing_description).strip().lower(),
+        )
+
+        existing_keys.add(key)
+
+    new_transactions = []
+    duplicate_transactions = []
+
+    for item in all_transactions:
+        key = (
+            item["date"].strftime("%m/%d/%Y").strip().lower(),
+            normalize_amount(item["amount"]),
+            str(item["account"]).strip().lower(),
+            str(item["description"]).strip().lower(),
+        )
+
+        if key in existing_keys:
+            duplicate_transactions.append(item)
+        else:
+            new_transactions.append(item)
+            existing_keys.add(key)
+
     main_destination_row = 69
 
     while worksheet.acell(f"H{main_destination_row}").value:
         main_destination_row += 1
 
-    for item in all_transactions:
-        worksheet.update([[item["date"].strftime("%m/%d/%Y")]], f"H{main_destination_row}")
-        worksheet.update([[item["budget_name"]]], f"I{main_destination_row}")
-        worksheet.update([[item["amount"]]], f"K{main_destination_row}")
-        worksheet.update([[item["account"]]], f"O{main_destination_row}")
-        worksheet.update([[item["description"]]], f"P{main_destination_row}")
+    rows_to_write = []
 
-        main_destination_row += 1
+    for item in new_transactions:
+        rows_to_write.append([
+            item["date"].strftime("%m/%d/%Y"),
+            item["budget_name"],
+            "",
+            item["amount"],
+            "",
+            "",
+            "",
+            item["account"],
+            item["description"],
+        ])
+
+    if rows_to_write:
+        worksheet.update(
+            rows_to_write,
+            f"H{main_destination_row}:P{main_destination_row + len(rows_to_write) - 1}"
+        )
 
     destination_path = os.path.join(
         r"C:\Users\Jaypr\iCloudDrive\coding_Lessons_And_Examples\Automate_The_Boring_Stuff\BudgetSheetProject",
@@ -122,7 +186,7 @@ def upload():
     while destination_ws.cell(row=main_destination_row, column=8).value is not None:
         main_destination_row += 1
 
-    for item in all_transactions:
+    for item in new_transactions:
         destination_ws.cell(row=main_destination_row, column=8).value = item["date"]
         destination_ws.cell(row=main_destination_row, column=9).value = item["budget_name"]
         destination_ws.cell(row=main_destination_row, column=11).value = item["amount"]
@@ -133,7 +197,11 @@ def upload():
 
     destination_wb.save(destination_path)
 
-    return f"Processed {len(all_transactions)} transactions from {len(files)} file(s) into {month}."
+    return (
+        f"Processed {len(all_transactions)} transactions from {len(files)} file(s) into {month}.<br>"
+        f"Added: {len(new_transactions)}<br>"
+        f"Skipped duplicates: {len(duplicate_transactions)}"
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)
