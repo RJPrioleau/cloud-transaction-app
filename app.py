@@ -24,34 +24,86 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return '''
-    <h2>Upload Transactions</h2>
-    
-    <form method="POST" action="/upload" enctype="multipart/form-data">
+    <html>
+    <head>
+        <title>Transaction Processor</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f5f5f5;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
 
-    <label>Choose month:</label>
-    <select name="month">
-        <option value="MAR">MAR</option>
-        <option value="APR">APR</option>
-        <option value="MAY">MAY</option>
-        <option value="TEST">TEST</option>
-        <option value="JUN">JUN</option>
-        <option value="JUL">JUL</option>
-        <option value="AUG">AUG</option>
-        <option value="SEP">SEP</option>
-        <option value="OCT">OCT</option>
-        <option value="NOV">NOV</option>
-        <option value="DEC">DEC</option>
-    </select>
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                width: 400px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                text-align: center;
+            }
 
-    <br><br>
+            h2 {
+                margin-bottom: 20px;
+            }
 
-    <label>Choose file:</label>
-    <input type="file" name="file" multiple>
+            input, select {
+                width: 100%;
+                padding: 10px;
+                margin: 10px 0;
+            }
 
-    <br><br>
+            button {
+                width: 100%;
+                padding: 12px;
+                background-color: #333;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+            }
 
-    <button type="submit">Upload and Process</button>
-</form>
+            button:hover {
+                background-color: #555;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <div class="container">
+            <h2>Transaction Processor</h2>
+
+            <form method="POST" action="/upload" enctype="multipart/form-data">
+
+                <label>Select Month</label>
+                <select name="month" required>
+                    <option value="">-- Select --</option>
+                    <option value="TEST">TEST</option>
+                    <option value="MAR">MAR</option>
+                    <option value="APR">APR</option>
+                    <option value="MAY">MAY</option>
+                    <option value="JUN">JUN</option>
+                    <option value="JUL">JUL</option>
+                    <option value="AUG">AUG</option>
+                    <option value="SEP">SEP</option>
+                    <option value="OCT">OCT</option>
+                    <option value="NOV">NOV</option>
+                    <option value="DEC">DEC</option>
+                </select>
+
+                <input type="file" name="file" multiple required>
+
+                <button type="submit">Upload Transactions</button>
+
+            </form>
+        </div>
+
+    </body>
+    </html>
     '''
 
 def detect_account_from_filename(filename):
@@ -278,6 +330,7 @@ def upload():
             ])
 
     report_html += f'<br><a class="button" href="/download/{report_filename}">Download Report</a>'
+    report_html += '<br><br><a class="button" href="/">Back to Upload</a>'
 
     return f"""
     <html>
