@@ -234,36 +234,6 @@ def process_transactions(source_file, account_name, destination_sheet_name):
         source_wb = load_workbook(source_file)
         source_ws = source_wb.active
 
-    destination_path = os.path.join(PROJECT_FOLDER, DESTINATION_FILE)
-    destination_wb = load_workbook(destination_path)
-
-    if destination_sheet_name not in destination_wb.sheetnames:
-        raise ValueError(
-            f"Sheet '{destination_sheet_name}' not found. Available sheets: {destination_wb.sheetnames}"
-        )
-
-    destination_ws = destination_wb[destination_sheet_name]
-
-    print("Source workbook loaded:", source_file)
-    print("Destination workbook loaded:", DESTINATION_FILE)
-    print("Destination sheet selected:", destination_sheet_name)
-    print("Account selected:", account_name)
-
-    # =========================
-    # Find Existing Transactions
-    # =========================
-    existing_transactions = set()
-
-    for row in range(START_ROW, destination_ws.max_row + 1):
-        date_value = destination_ws.cell(row=row, column=DATE_COL).value
-        amount_value = destination_ws.cell(row=row, column=AMOUNT_COL).value
-        description_value = destination_ws.cell(row=row, column=DESCRIPTION_COL).value
-
-        if date_value is not None and amount_value is not None and description_value is not None:
-            existing_transactions.add((date_value, amount_value, str(description_value).strip()))
-
-    print("Existing transactions found:", len(existing_transactions))
-
     rows_to_import = []
 
     if is_csv:
