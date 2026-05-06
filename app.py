@@ -2,6 +2,7 @@ import os
 import gspread
 import csv
 import webbrowser
+import threading
 from transaction_processor import process_transactions
 from flask import Flask, request, render_template, send_from_directory
 from openpyxl import load_workbook
@@ -18,7 +19,8 @@ def normalize_amount(value):
     except ValueError:
         return value.lower()
 
-
+def open_browser():
+    webbrowser.open("http://127.0.0.1:5000")
 app = Flask(__name__)
 
 @app.route("/")
@@ -201,8 +203,8 @@ def upload():
                 new_transactions.append(item)
                 existing_keys.add(key)
 
-            total_added_amount = sum(float(item["amount"]) for item in new_transactions)
-            total_duplicate_amount = sum(float(item["amount"]) for item in duplicate_transactions)
+        total_added_amount = sum(float(item["amount"]) for item in new_transactions)
+        total_duplicate_amount = sum(float(item["amount"]) for item in duplicate_transactions)
         main_destination_row = 69
 
         while worksheet.acell(f"H{main_destination_row}").value:
@@ -307,18 +309,6 @@ def upload():
 
         else:
             report_html = "<h3>Added Transactions</h3><p>No new transactions were added.</p>"
-
-        for item in new_transactions:
-            report_html += (
-                f"<tr>"
-                f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
-                f"<td>{float(item['amount']):.2f}</td>"
-                f"<td>{item['account']}</td>"
-                f"<td>{item['description']}</td>"
-                f"</tr>"
-            )
-
-        report_html += "</table>"
 
         report_html += "<h3>Skipped Duplicates</h3>"
         report_html += (
@@ -431,6 +421,7 @@ def upload():
                 }}
                 .duplicate-row {{
                     background-color: #fff1f2
+                }}
             </style>
         </head>
         <body>
@@ -480,9 +471,9 @@ def download_file(filename):
 
 if __name__ == "__main__":
     if os.environ.get("PORT") is None:
-        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            webbrowser.open("http://127.0.0.1:5000")
+        threading.Timer(1.5, open_browser).start()
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
