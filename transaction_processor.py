@@ -55,6 +55,18 @@ CATEGORY_RULES = [
     ("Adobe", "Adobe"),
     ("CASH APP*DEEZY 2 FADED", "Haircut"),
     ("Mobile Check Deposit", "Refunds/PayBack"),
+    ("SHAREPLANNER", "SharePlanner"),
+    ("T-MOBILE", "T-Mobile"),
+    ("The Richardson F", "Richardson Law Firm"),
+    ("RAMPARTNERS2-WSW", "Rent"),
+    ("CHEVRON 0205661", "Gas"),
+    ("HWY 80 CHEVRON", "Gas"),
+    ("SUNOCO 80028095", "Gas"),
+    ("ADOBE  *ADOBE", "Adobe"),
+    ("ENMARKET 1336", "Gas"),
+    ("BOJANGLES 1287", "Eating out"),
+    ("The Richardson F", "Richardson Law Firm"),
+    ("RAMPARTNERS2-WSW", "Rent"),
 
 ]
 

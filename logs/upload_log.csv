@@ -12,3 +12,5 @@ Timestamp,Month,Files Uploaded,Processed,Added,Duplicates,Report File
 2026-05-06 13:57:34,TEST,1,8,0,8,transaction_report_TEST_20260506_135734.csv
 2026-05-06 14:03:05,TEST,1,8,8,0,transaction_report_TEST_20260506_140305.csv
 2026-05-06 14:06:25,TEST,1,8,8,0,transaction_report_TEST_20260506_140625.csv
+2026-05-06 14:13:39,TEST,1,42,41,1,transaction_report_TEST_20260506_141339.csv
+2026-05-06 14:19:20,TEST,2,50,49,1,transaction_report_TEST_20260506_141920.csv
