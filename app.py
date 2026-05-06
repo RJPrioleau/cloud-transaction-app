@@ -210,26 +210,32 @@ def upload():
         while worksheet.acell(f"H{main_destination_row}").value:
             main_destination_row += 1
 
-        rows_to_write = [
-            [
-                item["date"].strftime("%m/%d/%Y"),
-                item["budget_name"],
-                "",
-                item["amount"],
-                "",
-                "",
-                "",
-                item["account"],
-                item["description"],
-            ]
-            for item in new_transactions
-        ]
+        if new_transactions:
+            start_row = main_destination_row
+            end_row = main_destination_row + len(new_transactions) - 1
 
-        if rows_to_write:
-            worksheet.update(
-                rows_to_write,
-                f"H{main_destination_row}:P{main_destination_row + len(rows_to_write) - 1}"
-            )
+            worksheet.batch_update([
+                {
+                    "range": f"H{start_row}:H{end_row}",
+                    "values": [[item["date"].strftime("%m/%d/%Y")] for item in new_transactions],
+                },
+                {
+                    "range": f"I{start_row}:I{end_row}",
+                    "values": [[item["budget_name"]] for item in new_transactions],
+                },
+                {
+                    "range": f"K{start_row}:K{end_row}",
+                    "values": [[item["amount"]] for item in new_transactions],
+                },
+                {
+                    "range": f"O{start_row}:O{end_row}",
+                    "values": [[item["account"]] for item in new_transactions],
+                },
+                {
+                    "range": f"P{start_row}:P{end_row}",
+                    "values": [[item["description"]] for item in new_transactions],
+                },
+            ])
 
         # ===== REPORT FILE =====
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
