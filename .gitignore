@@ -2,9 +2,14 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+*.log
+*.tmp
 uploads/
 reports/
 logs/
 transaction_processor_backup.py
 .idea/
 credentials.json
+.env
+.env.*
+Thumbs.db

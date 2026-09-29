@@ -1,44 +1,80 @@
 # Cloud Transaction App
 
-A Python Flask application designed to automate financial transaction imports, duplicate detection, categorization, Google Sheets integration, and reporting workflows.
+Cloud Transaction App is a local Flask application for importing personal bank transaction exports into a Google Sheets budget workbook.
 
-## Features
+The current app processes CSV/XLSX files, detects duplicate transactions, assigns basic budget categories, writes new rows to the selected month sheet, and produces local upload reports.
 
-* Multi-file CSV/XLSX upload support
-* Automated transaction processing and sorting
-* Duplicate transaction detection
-* Google Sheets API integration
-* Automated reporting and logging
-* Financial workflow automation
-* Browser-based upload interface
+## Status
 
-## Technologies Used
+This project predates the current Developer Playbook workflow. The repository is being brought up to the same structure as the user's newer projects before deeper bug triage and feature work.
 
-* Python
-* Flask
-* pandas
-* openpyxl
-* gspread
-* Google Sheets API
-* Git/GitHub
+Current priority:
 
-## How It Works
+1. Preserve the working legacy behavior.
+2. Triage the current bugs with the user.
+3. Skip fixes that will be made obsolete by approved new features.
+4. Restructure the code in small verified steps.
 
-1. Upload transaction files through the web interface
-2. Process and combine transaction data
-3. Detect and skip duplicate transactions
-4. Automatically update Google Sheets budget workbook
-5. Generate upload reports and logs
+## Current Features
 
-## Purpose
+- Multi-file CSV/XLSX upload support
+- Account detection from export filenames
+- Transaction parsing and sorting
+- Rule-based budget category assignment
+- Duplicate detection against existing Google Sheets rows
+- Google Sheets write workflow
+- Browser-based upload report
+- Local generated CSV reports and upload logs
 
-This project was developed to reduce manual financial data entry and improve efficiency through automation and structured transaction workflows.
+## Documentation
 
-## Future Improvements
+- [Product baseline](docs/PRODUCT.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md)
+- [Collaboration workflow](docs/COLLABORATION.md)
 
-* Enhanced budgeting analytics
-* Spending trend visualization
-* User authentication
-* Cloud deployment
-* Improved UI/UX
-* Budget forecasting tools
+## Development Setup
+
+Create and activate a local virtual environment, then install the recorded dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r .\requirements.txt
+```
+
+Run the Flask development server:
+
+```powershell
+python app.py
+```
+
+Open the app:
+
+```text
+http://127.0.0.1:5000
+```
+
+Verify the current Python files compile:
+
+```powershell
+python -m py_compile app.py transaction_processor.py
+```
+
+## Local Files
+
+The app expects Google service account credentials locally. By default it looks for:
+
+```text
+credentials.json
+```
+
+You can also point to another credentials file by setting:
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\credentials.json"
+```
+
+Generated uploads, reports, logs, credentials, virtual environments, and IDE settings are local-only and should not be committed.
+
+Read `AGENTS.md` and the repository documentation before making implementation or architectural decisions.
