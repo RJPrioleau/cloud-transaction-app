@@ -55,10 +55,16 @@ Open the app:
 http://127.0.0.1:5000
 ```
 
-Verify the current Python files compile:
+Run the characterization tests:
 
 ```powershell
-python -m py_compile app.py transaction_processor.py
+python -m unittest discover -s tests
+```
+
+For a quick syntax-only check:
+
+```powershell
+python -m py_compile app.py transaction_processor.py tests\test_transaction_processor.py
 ```
 
 ## Local Files

@@ -16,14 +16,14 @@ Status: In progress
 
 ## Phase 1 - Legacy App Triage
 
-Status: Planned
+Status: In progress
 
 Identify the current bugs and pain points before restructuring application code.
 
 - [ ] List known bugs from user experience.
 - [ ] Identify which current bugs will become obsolete because of planned features.
 - [ ] Confirm the smallest set of fixes needed before restructuring.
-- [ ] Establish a repeatable local verification command beyond syntax checks.
+- [x] Establish a repeatable local verification command beyond syntax checks.
 
 ## Phase 2 - Incremental Restructure
 

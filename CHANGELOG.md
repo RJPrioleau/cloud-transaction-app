@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added initial transaction processor characterization tests for CSV and XLSX parsing.
 - Added project collaboration instructions and continuity workflow.
 - Added roadmap for legacy triage, incremental restructuring, and later feature planning.
 - Added a product baseline document for current behavior and open decisions.

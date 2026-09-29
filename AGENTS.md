@@ -5,7 +5,7 @@
 - Project name: `Cloud Transaction App`
 - Purpose: `A personal transaction-import tool that processes bank exports, detects duplicates, categorizes transactions, writes approved rows to a Google Sheets budget workbook, and produces upload reports.`
 - Primary run command: `python app.py`
-- Primary verification command: `python -m py_compile app.py transaction_processor.py`
+- Primary verification command: `python -m unittest discover -s tests`
 
 ## Collaboration context
 
