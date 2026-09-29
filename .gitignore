@@ -1,7 +1,10 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 uploads/
+reports/
+logs/
 transaction_processor_backup.py
 .idea/
 credentials.json

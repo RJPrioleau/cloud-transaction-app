@@ -4,11 +4,18 @@ import csv
 import webbrowser
 import threading
 from transaction_processor import process_transactions
-from flask import Flask, request, render_template, send_from_directory
-from openpyxl import load_workbook
+from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
+from werkzeug.utils import secure_filename
 
+
+SPREADSHEET_NAME = os.environ.get(
+    "BUDGET_SPREADSHEET_NAME",
+    "ANNUAL-BUDGET 2026 (MAR - Present)",
+)
+CREDENTIALS_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "credentials.json")
+ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 
 
 def normalize_amount(value):
@@ -109,10 +116,17 @@ def home():
     '''
 
 def detect_account_from_filename(filename):
-    if "Savings•3475" in filename:
+    normalized_filename = (
+        filename.replace("•", " ")
+        .replace("-", " ")
+        .replace("_", " ")
+        .lower()
+    )
+
+    if "savings" in normalized_filename and "3475" in normalized_filename:
         return "SoFi Savings (3475)"
 
-    if "Checking•2695" in filename:
+    if "checking" in normalized_filename and "2695" in normalized_filename:
         return "SoFi Checking (2695)"
 
     return None
@@ -143,16 +157,20 @@ def upload():
             if file.filename == "":
                 continue
 
-            if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
+            original_filename = file.filename
+            extension = os.path.splitext(original_filename)[1].lower()
+
+            if extension not in ALLOWED_EXTENSIONS:
                 return "Invalid file type detected. Please upload only .csv or .xlsx files."
 
-            filepath = os.path.join(upload_folder, file.filename)
+            safe_filename = secure_filename(original_filename)
+            filepath = os.path.join(upload_folder, safe_filename)
             file.save(filepath)
 
-            detected_account = detect_account_from_filename(file.filename)
+            detected_account = detect_account_from_filename(original_filename)
 
             if detected_account is None:
-                return f"Could not detect account from filename: {file.filename}"
+                return f"Could not detect account from filename: {original_filename}"
 
             transactions = process_transactions(filepath, detected_account, month)
             all_transactions.extend(transactions)
@@ -165,10 +183,22 @@ def upload():
             "https://www.googleapis.com/auth/drive",
         ]
 
-        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        if not os.path.isfile(CREDENTIALS_FILE):
+            return f"""
+            <html>
+            <body style="font-family: Arial; padding: 20px;">
+                <h2 style="color: red;">Google credentials are missing</h2>
+                <p>Expected service account credentials at: {CREDENTIALS_FILE}</p>
+                <br>
+                <a href="/">Back to Upload</a>
+            </body>
+            </html>
+            """
+
+        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
         client = gspread.authorize(creds)
 
-        sheet = client.open("ANNUAL-BUDGET 2026 (MAR - Present)")
+        sheet = client.open(SPREADSHEET_NAME)
         worksheet = sheet.worksheet(month)
 
         existing_keys = set()

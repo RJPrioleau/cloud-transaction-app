@@ -173,6 +173,12 @@ def normalize_date(value):
 
     return datetime.max
 
+def parse_transaction_date(value):
+    date_value = normalize_date(value)
+    if date_value == datetime.max:
+        return None
+    return date_value
+
 def normalize_header(value):
     if value is None:
         return ""
@@ -252,15 +258,9 @@ def process_transactions(source_file, account_name, destination_sheet_name):
         csv_rows = read_csv_rows(source_file)
 
         for row in csv_rows:
-            date_text = str(row.get("Date")).strip()
-
-            try:
-                date_value = datetime.strptime(date_text, "%Y-%m-%d")
-            except ValueError:
-                try:
-                    date_value = datetime.strptime(date_text, "%m/%d/%Y")
-                except ValueError:
-                    continue
+            date_value = parse_transaction_date(row.get("Date"))
+            if date_value is None:
+                continue
 
             description_value = row.get("Description")
             amount_value = row.get("Amount")
@@ -275,22 +275,7 @@ def process_transactions(source_file, account_name, destination_sheet_name):
             except (TypeError, ValueError):
                 continue
 
-            transaction_key = (date_value, amount_value, description_text)
-
-            #if transaction_key in existing_transactions:
-             #   continue
-
-            budget_name = "MISC"
-
-            if description_text.startswith("APPLE.COM/BILL") and round(amount_value, 2) == 5.99:
-                budget_name = "Apple Music"
-            elif description_text.startswith("APPLE.COM/BILL") and round(amount_value, 2) == 2.99:
-                budget_name = "iCloud +"
-            else:
-                for text_to_match, category_name in CATEGORY_RULES:
-                    if description_text.startswith(text_to_match):
-                        budget_name = category_name
-                        break
+            budget_name = detect_budget_name(description_text, amount_value)
 
             rows_to_import.append({
                 "date": date_value,
@@ -312,16 +297,12 @@ def process_transactions(source_file, account_name, destination_sheet_name):
         description_col = get_header_column(source_headers, "description", "transaction description", "memo")
         amount_col = get_header_column(source_headers, "amount", "debit", "credit")
 
-        print("Date column:", date_col)
-        print("Description column:", description_col)
-        print("Amount column:", amount_col)
-
         for row in range(2, source_ws.max_row + 1):
-            date_value = source_ws.cell(row=row, column=date_col).value
+            date_value = parse_transaction_date(source_ws.cell(row=row, column=date_col).value)
             description_value = source_ws.cell(row=row, column=description_col).value
             amount_value = source_ws.cell(row=row, column=amount_col).value
 
-            if description_value is None or amount_value is None:
+            if date_value is None or description_value is None or amount_value is None:
                 continue
 
             description_text = str(description_value).strip()
@@ -331,22 +312,7 @@ def process_transactions(source_file, account_name, destination_sheet_name):
             except (TypeError, ValueError):
                 continue
 
-            transaction_key = (date_value, amount_value, description_text)
-
-            #if transaction_key in existing_transactions:
-            #    continue
-
-            budget_name = "MISC"
-
-            if description_text.startswith("APPLE.COM/BILL") and round(amount_value, 2) == 5.99:
-                budget_name = "Apple Music"
-            elif description_text.startswith("APPLE.COM/BILL") and round(amount_value, 2) == 2.99:
-                budget_name = "iCloud +"
-            else:
-                for text_to_match, category_name in CATEGORY_RULES:
-                    if description_text.startswith(text_to_match):
-                        budget_name = category_name
-                        break
+            budget_name = detect_budget_name(description_text, amount_value)
 
             rows_to_import.append({
                 "date": date_value,
