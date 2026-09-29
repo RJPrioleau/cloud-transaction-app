@@ -3,7 +3,7 @@ import gspread
 import csv
 import webbrowser
 import threading
-from transaction_processor import process_transactions
+from transaction_processor import detect_account_from_filename, process_transactions
 from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
@@ -114,23 +114,6 @@ def home():
     </body>
     </html>
     '''
-
-def detect_account_from_filename(filename):
-    normalized_filename = (
-        filename.replace("•", " ")
-        .replace("-", " ")
-        .replace("_", " ")
-        .lower()
-    )
-
-    if "savings" in normalized_filename and "3475" in normalized_filename:
-        return "SoFi Savings (3475)"
-
-    if "checking" in normalized_filename and "2695" in normalized_filename:
-        return "SoFi Checking (2695)"
-
-    return None
-
 
 
 @app.route("/upload", methods=["POST"])

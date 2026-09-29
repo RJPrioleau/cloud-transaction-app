@@ -201,6 +201,24 @@ def read_csv_rows(source_file):
 
     return rows
 
+
+def detect_account_from_filename(filename):
+    normalized_filename = (
+        filename.replace("•", " ")
+        .replace("-", " ")
+        .replace("_", " ")
+        .lower()
+    )
+
+    if "savings" in normalized_filename and "3475" in normalized_filename:
+        return "SoFi Savings (3475)"
+
+    if "checking" in normalized_filename and "2695" in normalized_filename:
+        return "SoFi Checking (2695)"
+
+    return None
+
+
 def detect_budget_name(description_text, amount_value):
     budget_name = "MISC"
 

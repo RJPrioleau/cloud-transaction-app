@@ -5,10 +5,24 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from transaction_processor import process_transactions
+from transaction_processor import detect_account_from_filename, process_transactions
 
 
 class ProcessTransactionsTests(unittest.TestCase):
+    def test_detects_account_from_filename(self):
+        self.assertEqual(
+            detect_account_from_filename("SoFi Checking•2695.csv"),
+            "SoFi Checking (2695)",
+        )
+        self.assertEqual(
+            detect_account_from_filename("SoFi Savings•3475.csv"),
+            "SoFi Savings (3475)",
+        )
+        self.assertEqual(
+            detect_account_from_filename("unknown-account.csv"),
+            None,
+        )
+
     def test_processes_csv_transactions_with_categories_and_sorted_dates(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             csv_path = Path(temp_dir) / "Checking-2695.csv"
