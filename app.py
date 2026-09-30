@@ -4,10 +4,9 @@ import csv
 import webbrowser
 import threading
 from transaction_processor import (
-    build_existing_transaction_key,
-    build_transaction_key,
     detect_account_from_filename,
-    process_transactions
+    process_transactions,
+    split_new_and_duplicate_transactions,
 )
 from flask import Flask, request, send_from_directory
 from datetime import datetime
@@ -182,27 +181,12 @@ def upload():
         sheet = client.open(SPREADSHEET_NAME)
         worksheet = sheet.worksheet(month)
 
-        existing_keys = set()
         existing_rows = worksheet.get_all_values()
 
-        for row in existing_rows[68:]:
-            if len(row) < 16:
-                continue
-
-            key = build_existing_transaction_key(row)
-            existing_keys.add(key)
-
-        new_transactions = []
-        duplicate_transactions = []
-
-        for item in all_transactions:
-            key = build_transaction_key(item)
-
-            if key in existing_keys:
-                duplicate_transactions.append(item)
-            else:
-                new_transactions.append(item)
-                existing_keys.add(key)
+        new_transactions, duplicate_transactions = split_new_and_duplicate_transactions(
+            existing_rows[68:],
+            all_transactions,
+        )
 
         total_added_amount = sum(float(item["amount"]) for item in new_transactions)
         total_duplicate_amount = sum(float(item["amount"]) for item in duplicate_transactions)

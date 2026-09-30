@@ -252,6 +252,30 @@ def build_transaction_key(item):
     )
 
 
+def split_new_and_duplicate_transactions(existing_rows, transactions):
+    existing_keys = set()
+
+    for row in existing_rows:
+        if len(row) < 16:
+            continue
+
+        existing_keys.add(build_existing_transaction_key(row))
+
+    new_transactions = []
+    duplicate_transactions = []
+
+    for item in transactions:
+        key = build_transaction_key(item)
+
+        if key in existing_keys:
+            duplicate_transactions.append(item)
+        else:
+            new_transactions.append(item)
+            existing_keys.add(key)
+
+    return new_transactions, duplicate_transactions
+
+
 def detect_budget_name(description_text, amount_value):
     budget_name = "MISC"
 

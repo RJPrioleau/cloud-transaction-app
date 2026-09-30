@@ -11,6 +11,7 @@ from transaction_processor import (
     build_transaction_key,
     detect_account_from_filename,
     process_transactions,
+    split_new_and_duplicate_transactions,
 )
 
 
@@ -53,6 +54,39 @@ class ProcessTransactionsTests(unittest.TestCase):
             build_existing_transaction_key(row),
             ("09/01/2026", "42.10", "sofi checking (2695)", "shell service"),
         )
+
+    def test_splits_new_and_duplicate_transactions(self):
+        existing_rows = [
+            ["too short"],
+            [""] * 16,
+        ]
+        existing_rows[1][7] = "09/01/2026"
+        existing_rows[1][10] = "$42.10"
+        existing_rows[1][14] = "SoFi Checking (2695)"
+        existing_rows[1][15] = "SHELL SERVICE"
+
+        transactions = [
+            {
+                "date": datetime(2026, 9, 1),
+                "amount": 42.1,
+                "account": "SoFi Checking (2695)",
+                "description": "SHELL SERVICE",
+            },
+            {
+                "date": datetime(2026, 9, 2),
+                "amount": 5.99,
+                "account": "SoFi Checking (2695)",
+                "description": "APPLE.COM/BILL",
+            },
+        ]
+
+        new_transactions, duplicate_transactions = split_new_and_duplicate_transactions(
+            existing_rows,
+            transactions,
+        )
+
+        self.assertEqual(new_transactions, [transactions[1]])
+        self.assertEqual(duplicate_transactions, [transactions[0]])
 
     def test_processes_csv_transactions_with_categories_and_sorted_dates(self):
         with tempfile.TemporaryDirectory() as temp_dir:
