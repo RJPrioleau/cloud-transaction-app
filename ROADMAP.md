@@ -52,6 +52,26 @@ After current problems and restructuring direction are understood, define the ne
 - [ ] Document approved requirements before implementation.
 - [ ] Build features as small verified slices.
 
+## Phase 4 - Budgeting Architecture Design
+
+Status: Planned
+
+After the current characterization-test and legacy-restructure work is complete, revisit the target budgeting architecture before implementing budgeting features. The architecture must account for the difference between the monthly budget view and paycheck-based funding decisions.
+
+Approved future responsibilities to design before implementation:
+
+- Recurring bill templates and period-specific bill instances.
+- Pay-calendar import/parsing from employer-provided source files.
+- User review, correction, and confirmation of detected pay dates.
+- Pay-schedule storage that preserves historical schedules and supports future schedule changes.
+- Fund-by date calculation using configurable safety buffers.
+- Paycheck-to-bill allocation across calendar-month and calendar-year boundaries.
+- Automatic split-funding recommendations across multiple paychecks.
+- Manual allocation overrides that preserve the distinction between recommended and user-selected allocations.
+- Paycheck-oriented funding views and optional Google Sheets output.
+
+Do not implement these modules during the current characterization-test work. Use the requirements in `docs/PRODUCT.md` when architecture design resumes.
+
 ## Parking Lot
 
 These ideas are not approved requirements yet.

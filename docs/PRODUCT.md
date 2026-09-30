@@ -45,6 +45,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - How should account detection work when filename patterns change?
 - What test fixtures can safely represent bank exports without exposing personal data?
 - What should the long-term UI look like?
+- During budgeting architecture design, which payroll/allocation records belong in application storage and which should be synchronized or displayed in Google Sheets?
 
 ## Non-Goals Until Approved
 
@@ -56,3 +57,127 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - Do not rewrite the app into another framework.
 
 These may become approved later, but they are not current implementation requirements.
+
+## Approved Future Budgeting Requirements
+
+These requirements are approved inputs for future budgeting architecture design. They must not interrupt the current characterization-test work, and they should not be implemented until the budgeting/refactoring architecture has been revisited and approved.
+
+### Pay Calendar And Pay Schedule
+
+The budgeting system must not assume income arrives on fixed calendar dates such as the 1st and 15th. It must eventually model actual confirmed pay dates because employer pay schedules can move through the calendar while bill due dates remain relatively fixed.
+
+The app should support importing employer-provided pay calendars from practical source formats such as PDF, XLSX, CSV, or other formats considered later. The app must not hard-code one employer's payroll schedule into Python.
+
+Imported calendar data should follow this conceptual flow:
+
+```text
+Employer Pay Calendar
+    -> Import / extraction
+    -> Detected pay periods and pay dates
+    -> User review
+    -> User confirmation
+    -> Confirmed Pay Schedule
+    -> Budget / paycheck allocation engine
+```
+
+Detected pay dates must not automatically become trusted budgeting data. The user must be able to review detected dates, correct them, and confirm the schedule before it becomes active for budgeting calculations.
+
+The future pay schedule model should leave room for:
+
+- Pay date.
+- Pay-period start and end dates, when available.
+- Expected or guaranteed pay amount.
+- Actual pay amount when known.
+- Confirmation status.
+- Source calendar reference.
+- Notes or manual corrections.
+
+The architecture must support different schedules in different years without rewriting historical schedules. If employment or pay frequency changes, a new future schedule should be able to replace future planning data without changing historical payroll records.
+
+### Paycheck-To-Bill Allocation
+
+The monthly budget answers: "What do I owe or plan to spend?"
+
+The paycheck allocation system answers: "Which money should pay for it, and when should I reserve that money?"
+
+The allocation engine should use actual confirmed pay dates to determine which paycheck or paychecks should fund upcoming bills and recurring obligations. Allocation must be based on timing rather than only the calendar month in which a bill appears.
+
+Calendar-month boundaries must not limit the calculation. For example, a bill due June 1 may need to be funded by a paycheck received in May. The allocation logic must also work across calendar-year boundaries.
+
+The allocation engine should operate on period-specific bill instances rather than changing recurring bill templates:
+
+```text
+Recurring Template
+    -> Monthly Bill Instance
+    -> Due Date / Fund-By Date
+    -> Applicable Paychecks
+    -> Recommended Allocation
+    -> Optional Manual Override
+```
+
+Changing a paycheck allocation must not modify the recurring bill template.
+
+### Fund-By Dates And Safety Buffer
+
+The architecture should support a configurable funding safety buffer. Instead of treating the due date as the last acceptable funding date, the system may calculate:
+
+```text
+Fund-By Date = Due Date - Safety Buffer
+```
+
+For example, a bill due June 1 with a 3-day safety buffer has a fund-by date of May 29. The allocation engine should ensure enough money is reserved by the fund-by date.
+
+The safety buffer must be configurable rather than hard-coded.
+
+### Automatic Split Funding And Overrides
+
+Automatic split funding is a desired feature. The system should be capable of recommending that a bill be funded gradually across multiple applicable paychecks instead of always assigning the full amount to the paycheck immediately before the due date.
+
+The allocation strategy should eventually consider:
+
+- Bill amount.
+- Bill due date and fund-by date.
+- Available paychecks before the deadline.
+- Other obligations assigned to those paychecks.
+- Expected available income.
+- Existing money already reserved toward the bill.
+
+Do not assume an equal split is always the best algorithm. Propose the allocation strategy during architecture design.
+
+Automatic allocation is a recommendation/default, not a mandatory allocation. The user must be able to override the recommended split, including assigning all funding to one paycheck or manually distributing funding across multiple paychecks.
+
+The system should preserve the distinction between recommended allocation and manual allocation when practical. The architecture should leave room for allocation modes such as Auto, One Paycheck, Split Across Paychecks, and Manual. Exact UI details remain a later design decision.
+
+### Paycheck Funding View
+
+The app should eventually provide a view organized around paychecks rather than only calendar months. For each upcoming paycheck, the user should be able to see:
+
+- Pay date.
+- Expected paycheck amount.
+- Bills and obligations funded from that paycheck.
+- Amount reserved toward each obligation.
+- Total amount that must be reserved.
+- Remaining money after required reserves.
+
+This view should make it immediately clear what money from each paycheck is already committed.
+
+Biweekly payroll schedules that create three-paycheck calendar months must be handled correctly. A third paycheck must not automatically be treated as extra money. The allocation engine should first look ahead to upcoming obligations and determine whether that paycheck needs to fund future bills. Only money remaining after required reserves should be treated as available for savings, debt payments, sinking funds, discretionary spending, or other financial goals.
+
+### Google Sheets Boundary
+
+Do not assume the employer pay calendar itself must be embedded in the existing Google Sheets workbook.
+
+Preferred architectural direction:
+
+- Python/Flask application: pay-calendar import, review/confirmation, pay-schedule management, paycheck-allocation calculations, and paycheck-oriented funding views.
+- Google Sheets: financial storage/reporting where useful, optional output of resulting allocations, and optional budget/dashboard integration.
+
+During architecture design, decide what payroll and allocation data belongs in application storage versus what should be synchronized or displayed in Google Sheets.
+
+### Historical Integrity
+
+Historical payroll schedules, bill instances, recommendations, and manual allocations should remain historically accurate.
+
+Future changes to employer payroll schedules, recurring bill amounts, recurring due dates, allocation strategy, or safety-buffer settings must not silently rewrite completed historical periods.
+
+The architecture must distinguish between historical records and future planning defaults.

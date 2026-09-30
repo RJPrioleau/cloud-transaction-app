@@ -6,6 +6,7 @@
 - Added project collaboration instructions and continuity workflow.
 - Added roadmap for legacy triage, incremental restructuring, and later feature planning.
 - Added a product baseline document for current behavior and open decisions.
+- Documented future pay-calendar and paycheck-allocation requirements for later budgeting architecture design.
 - Updated setup documentation to match the newer project workflow.
 
 ## 2026-09-29
