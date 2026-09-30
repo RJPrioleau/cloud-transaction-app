@@ -50,3 +50,19 @@ def build_upload_log_row(
         duplicate_count,
         report_filename,
     ]
+
+
+def build_transaction_rows_html(transactions, row_class):
+    rows_html = ""
+
+    for item in transactions:
+        rows_html += (
+            f"<tr class='{row_class}'>"
+            f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
+            f"<td>{float(item['amount']):.2f}</td>"
+            f"<td>{item['account']}</td>"
+            f"<td>{item['description']}</td>"
+            f"</tr>"
+        )
+
+    return rows_html

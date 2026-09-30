@@ -12,6 +12,7 @@ from transaction_processor import (
 from upload_report import (
     UPLOAD_LOG_HEADER,
     build_transaction_report_rows,
+    build_transaction_rows_html,
     build_upload_log_row,
 )
 from flask import Flask, request, send_from_directory
@@ -245,15 +246,7 @@ def upload():
                 f"<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
             )
 
-            for item in new_transactions:
-                report_html += (
-                    f"<tr class='added-row'>"
-                    f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
-                    f"<td>{float(item['amount']):.2f}</td>"
-                    f"<td>{item['account']}</td>"
-                    f"<td>{item['description']}</td>"
-                    f"</tr>"
-                )
+            report_html += build_transaction_rows_html(new_transactions, "added-row")
 
             report_html += "</table>"
 
@@ -266,15 +259,7 @@ def upload():
             "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
         )
 
-        for item in duplicate_transactions:
-            report_html += (
-                f"<tr class='duplicate-row'>"
-                f"<td>{item['date'].strftime('%m/%d/%Y')}</td>"
-                f"<td>{float(item['amount']):.2f}</td>"
-                f"<td>{item['account']}</td>"
-                f"<td>{item['description']}</td>"
-                f"</tr>"
-            )
+        report_html += build_transaction_rows_html(duplicate_transactions, "duplicate-row")
 
         report_html += "</table>"
 

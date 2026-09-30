@@ -4,6 +4,7 @@ from datetime import datetime
 from upload_report import (
     UPLOAD_LOG_HEADER,
     build_transaction_report_rows,
+    build_transaction_rows_html,
     build_upload_log_row,
 )
 
@@ -80,6 +81,28 @@ class UploadReportTests(unittest.TestCase):
                 2,
                 "transaction_report_SEP_20260930_140506.csv",
             ],
+        )
+
+    def test_builds_transaction_rows_html(self):
+        transactions = [
+            {
+                "date": datetime(2026, 9, 1),
+                "amount": 42.1,
+                "account": "SoFi Checking (2695)",
+                "description": "SHELL SERVICE",
+            },
+        ]
+
+        self.assertEqual(
+            build_transaction_rows_html(transactions, "added-row"),
+            (
+                "<tr class='added-row'>"
+                "<td>09/01/2026</td>"
+                "<td>42.10</td>"
+                "<td>SoFi Checking (2695)</td>"
+                "<td>SHELL SERVICE</td>"
+                "</tr>"
+            ),
         )
 
 
