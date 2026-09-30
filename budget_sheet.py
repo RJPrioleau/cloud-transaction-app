@@ -1,3 +1,12 @@
+def find_first_empty_transaction_row(worksheet, start_row=69):
+    current_row = start_row
+
+    while worksheet.acell(f"H{current_row}").value:
+        current_row += 1
+
+    return current_row
+
+
 def build_transaction_batch_updates(start_row, transactions):
     if not transactions:
         return []

@@ -1,10 +1,34 @@
 import unittest
 from datetime import datetime
 
-from budget_sheet import build_transaction_batch_updates
+from budget_sheet import (
+    build_transaction_batch_updates,
+    find_first_empty_transaction_row,
+)
+
+
+class FakeCell:
+    def __init__(self, value):
+        self.value = value
+
+
+class FakeWorksheet:
+    def __init__(self, occupied_cells):
+        self.occupied_cells = occupied_cells
+
+    def acell(self, cell_name):
+        return FakeCell(self.occupied_cells.get(cell_name))
 
 
 class BudgetSheetTests(unittest.TestCase):
+    def test_finds_first_empty_transaction_row(self):
+        worksheet = FakeWorksheet({
+            "H69": "09/01/2026",
+            "H70": "09/02/2026",
+        })
+
+        self.assertEqual(find_first_empty_transaction_row(worksheet), 71)
+
     def test_builds_transaction_batch_updates_for_writable_columns(self):
         transactions = [
             {

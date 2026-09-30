@@ -3,7 +3,10 @@ import gspread
 import csv
 import webbrowser
 import threading
-from budget_sheet import build_transaction_batch_updates
+from budget_sheet import (
+    build_transaction_batch_updates,
+    find_first_empty_transaction_row,
+)
 from transaction_processor import (
     detect_account_from_filename,
     process_transactions,
@@ -197,10 +200,7 @@ def upload():
 
         total_added_amount = sum(float(item["amount"]) for item in new_transactions)
         total_duplicate_amount = sum(float(item["amount"]) for item in duplicate_transactions)
-        main_destination_row = 69
-
-        while worksheet.acell(f"H{main_destination_row}").value:
-            main_destination_row += 1
+        main_destination_row = find_first_empty_transaction_row(worksheet)
 
         if new_transactions:
             start_row = main_destination_row
