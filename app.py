@@ -3,7 +3,12 @@ import gspread
 import csv
 import webbrowser
 import threading
-from transaction_processor import detect_account_from_filename, process_transactions
+from transaction_processor import (
+    build_existing_transaction_key,
+    build_transaction_key,
+    detect_account_from_filename,
+    process_transactions
+)
 from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
@@ -18,13 +23,6 @@ CREDENTIALS_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "credentials
 ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 
 
-def normalize_amount(value):
-    value = str(value).replace("$", "").replace(",", "").strip()
-
-    try:
-        return f"{float(value):.2f}"
-    except ValueError:
-        return value.lower()
 
 def open_browser():
     webbrowser.open("http://127.0.0.1:5000")
@@ -191,24 +189,14 @@ def upload():
             if len(row) < 16:
                 continue
 
-            key = (
-                str(row[7]).strip().lower(),
-                normalize_amount(row[10]),
-                str(row[14]).strip().lower(),
-                str(row[15]).strip().lower(),
-            )
+            key = build_existing_transaction_key(row)
             existing_keys.add(key)
 
         new_transactions = []
         duplicate_transactions = []
 
         for item in all_transactions:
-            key = (
-                item["date"].strftime("%m/%d/%Y").strip().lower(),
-                normalize_amount(item["amount"]),
-                str(item["account"]).strip().lower(),
-                str(item["description"]).strip().lower(),
-            )
+            key = build_transaction_key(item)
 
             if key in existing_keys:
                 duplicate_transactions.append(item)

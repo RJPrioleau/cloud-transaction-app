@@ -133,6 +133,7 @@ def is_valid_excel_file(file_path: str) -> bool:
     except Exception:
         return False
 
+
 def get_newest_valid_source_file(folder: str, destination_file: str) -> str:
     source_files = [
         file_name for file_name in glob(os.path.join(folder, "*.xlsx"))
@@ -147,6 +148,7 @@ def get_newest_valid_source_file(folder: str, destination_file: str) -> str:
         )
 
     return max(valid_files, key=os.path.getmtime)
+
 
 def normalize_date(value):
     """
@@ -173,16 +175,19 @@ def normalize_date(value):
 
     return datetime.max
 
+
 def parse_transaction_date(value):
     date_value = normalize_date(value)
     if date_value == datetime.max:
         return None
     return date_value
 
+
 def normalize_header(value):
     if value is None:
         return ""
     return str(value).strip().lower()
+
 
 def get_header_column(source_headers, *possible_names):
     for name in possible_names:
@@ -190,6 +195,7 @@ def get_header_column(source_headers, *possible_names):
         if key in source_headers:
             return source_headers[key]
     raise KeyError(f"Missing required column. Expected one of: {', '.join(possible_names)}")
+
 
 def read_csv_rows(source_file):
     with open(source_file, mode="r", newline="", encoding="utf-8-sig") as csv_file:
@@ -217,6 +223,33 @@ def detect_account_from_filename(filename):
         return "SoFi Checking (2695)"
 
     return None
+
+
+def normalize_amount(value):
+    value = str(value).replace("$", "").replace(",", "").strip()
+
+    try:
+        return f"{float(value):.2f}"
+    except ValueError:
+        return value.lower()
+
+
+def build_existing_transaction_key(row):
+    return (
+        str(row[7]).strip().lower(),
+        normalize_amount(row[10]),
+        str(row[14]).strip().lower(),
+        str(row[15]).strip().lower(),
+    )
+
+
+def build_transaction_key(item):
+    return (
+        item["date"].strftime("%m/%d/%Y").strip().lower(),
+        normalize_amount(item["amount"]),
+        str(item["account"]).strip().lower(),
+        str(item["description"]).strip().lower(),
+    )
 
 
 def detect_budget_name(description_text, amount_value):

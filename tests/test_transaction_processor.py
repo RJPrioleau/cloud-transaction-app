@@ -2,10 +2,16 @@ import csv
 import tempfile
 import unittest
 from pathlib import Path
+from datetime import datetime
 
 from openpyxl import Workbook
 
-from transaction_processor import detect_account_from_filename, process_transactions
+from transaction_processor import (
+    build_existing_transaction_key,
+    build_transaction_key,
+    detect_account_from_filename,
+    process_transactions,
+)
 
 
 class ProcessTransactionsTests(unittest.TestCase):
@@ -21,6 +27,31 @@ class ProcessTransactionsTests(unittest.TestCase):
         self.assertEqual(
             detect_account_from_filename("unknown-account.csv"),
             None,
+        )
+
+    def test_builds_transaction_key_from_processed_item(self):
+        item = {
+            "date": datetime(2026, 9, 1),
+            "amount": 42.1,
+            "account": " SoFi Checking (2695) ",
+            "description": " SHELL SERVICE ",
+        }
+
+        self.assertEqual(
+            build_transaction_key(item),
+            ("09/01/2026", "42.10", "sofi checking (2695)", "shell service"),
+        )
+
+    def test_builds_transaction_key_from_existing_sheet_row(self):
+        row = [""] * 16
+        row[7] = " 09/01/2026 "
+        row[10] = "$42.10"
+        row[14] = " SoFi Checking (2695) "
+        row[15] = " SHELL SERVICE "
+
+        self.assertEqual(
+            build_existing_transaction_key(row),
+            ("09/01/2026", "42.10", "sofi checking (2695)", "shell service"),
         )
 
     def test_processes_csv_transactions_with_categories_and_sorted_dates(self):
