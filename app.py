@@ -9,6 +9,7 @@ from transaction_processor import (
     process_transactions,
     split_new_and_duplicate_transactions,
 )
+from upload_report import build_transaction_report_rows
 from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
@@ -207,25 +208,7 @@ def upload():
 
         with open(report_path, mode="w", newline="", encoding="utf-8") as report_file:
             writer = csv.writer(report_file)
-            writer.writerow(["Status", "Date", "Amount", "Account", "Description"])
-
-            for item in new_transactions:
-                writer.writerow([
-                    "ADDED",
-                    item["date"].strftime("%m/%d/%Y"),
-                    f"{float(item['amount']):.2f}",
-                    item["account"],
-                    item["description"],
-                ])
-
-            for item in duplicate_transactions:
-                writer.writerow([
-                    "DUPLICATE",
-                    item["date"].strftime("%m/%d/%Y"),
-                    f"{float(item['amount']):.2f}",
-                    item["account"],
-                    item["description"],
-                ])
+            writer.writerows(build_transaction_report_rows(new_transactions, duplicate_transactions))
 
         # ===== LOGGING =====
         log_file_path = os.path.join(log_folder, "upload_log.csv")
