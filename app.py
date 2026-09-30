@@ -3,6 +3,7 @@ import gspread
 import csv
 import webbrowser
 import threading
+from budget_sheet import build_transaction_batch_updates
 from transaction_processor import (
     detect_account_from_filename,
     process_transactions,
@@ -197,30 +198,7 @@ def upload():
 
         if new_transactions:
             start_row = main_destination_row
-            end_row = main_destination_row + len(new_transactions) - 1
-
-            worksheet.batch_update([
-                {
-                    "range": f"H{start_row}:H{end_row}",
-                    "values": [[item["date"].strftime("%m/%d/%Y")] for item in new_transactions],
-                },
-                {
-                    "range": f"I{start_row}:I{end_row}",
-                    "values": [[item["budget_name"]] for item in new_transactions],
-                },
-                {
-                    "range": f"K{start_row}:K{end_row}",
-                    "values": [[item["amount"]] for item in new_transactions],
-                },
-                {
-                    "range": f"O{start_row}:O{end_row}",
-                    "values": [[item["account"]] for item in new_transactions],
-                },
-                {
-                    "range": f"P{start_row}:P{end_row}",
-                    "values": [[item["description"]] for item in new_transactions],
-                },
-            ])
+            worksheet.batch_update(build_transaction_batch_updates(start_row, new_transactions))
 
         # ===== REPORT FILE =====
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
