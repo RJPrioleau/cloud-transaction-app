@@ -1,7 +1,11 @@
 import unittest
 from datetime import datetime
 
-from upload_report import build_transaction_report_rows
+from upload_report import (
+    UPLOAD_LOG_HEADER,
+    build_transaction_report_rows,
+    build_upload_log_row,
+)
 
 
 class UploadReportTests(unittest.TestCase):
@@ -41,6 +45,40 @@ class UploadReportTests(unittest.TestCase):
                     "SoFi Checking (2695)",
                     "APPLE.COM/BILL",
                 ],
+            ],
+        )
+
+    def test_builds_upload_log_row(self):
+        self.assertEqual(
+            UPLOAD_LOG_HEADER,
+            [
+                "Timestamp",
+                "Month",
+                "Files Uploaded",
+                "Processed",
+                "Added",
+                "Duplicates",
+                "Report File",
+            ],
+        )
+        self.assertEqual(
+            build_upload_log_row(
+                datetime(2026, 9, 30, 14, 5, 6),
+                "SEP",
+                2,
+                10,
+                8,
+                2,
+                "transaction_report_SEP_20260930_140506.csv",
+            ),
+            [
+                "2026-09-30 14:05:06",
+                "SEP",
+                2,
+                10,
+                8,
+                2,
+                "transaction_report_SEP_20260930_140506.csv",
             ],
         )
 

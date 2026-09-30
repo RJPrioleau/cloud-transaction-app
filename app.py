@@ -9,7 +9,11 @@ from transaction_processor import (
     process_transactions,
     split_new_and_duplicate_transactions,
 )
-from upload_report import build_transaction_report_rows
+from upload_report import (
+    UPLOAD_LOG_HEADER,
+    build_transaction_report_rows,
+    build_upload_log_row,
+)
 from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
@@ -218,25 +222,19 @@ def upload():
             log_writer = csv.writer(log_file)
 
             if not file_exists:
-                log_writer.writerow([
-                    "Timestamp",
-                    "Month",
-                    "Files Uploaded",
-                    "Processed",
-                    "Added",
-                    "Duplicates",
-                    "Report File"
-                ])
+                log_writer.writerow(UPLOAD_LOG_HEADER)
 
-            log_writer.writerow([
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                month,
-                len(files),
-                len(all_transactions),
-                len(new_transactions),
-                len(duplicate_transactions),
-                report_filename
-            ])
+            log_writer.writerow(
+                build_upload_log_row(
+                    datetime.now(),
+                    month,
+                    len(files),
+                    len(all_transactions),
+                    len(new_transactions),
+                    len(duplicate_transactions),
+                    report_filename,
+                )
+            )
 
         # ===== HTML OUTPUT =====
         # ===== ADDED TRANSACTIONS =====
