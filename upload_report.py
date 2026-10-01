@@ -21,6 +21,29 @@ def build_transaction_report_rows(new_transactions, duplicate_transactions):
 
     return rows
 
+def build_transaction_report_html(new_transactions, duplicate_transactions):
+    if new_transactions:
+        report_html = (
+            "<h3>Added Transactions</h3>"
+            "<table>"
+            "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+        )
+
+        report_html += build_transaction_rows_html(new_transactions, "added-row")
+        report_html += "</table>"
+    else:
+        report_html = "<h3>Added Transactions</h3><p>No new transactions were added.</p>"
+
+    report_html += "<h3>Skipped Duplicates</h3>"
+    report_html += (
+        "<table>"
+        "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+    )
+
+    report_html += build_transaction_rows_html(duplicate_transactions, "duplicate-row")
+    report_html += "</table>"
+
+    return report_html
 
 def build_transaction_report_row(status, item):
     return [

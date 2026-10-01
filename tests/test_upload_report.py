@@ -28,6 +28,18 @@ class UploadReportTests(unittest.TestCase):
             },
         ]
 
+        report_html = build_transaction_report_html(
+            new_transactions,
+            duplicate_transactions,
+        )
+
+        self.assertIn("<h3>Added Transactions</h3>", report_html)
+        self.assertIn("<tr class='added-row'>", report_html)
+        self.assertIn("<td>SHELL SERVICE</td>", report_html)
+        self.assertIn("<h3>Skipped Duplicates</h3>", report_html)
+        self.assertIn("<tr class='duplicate-row'>", report_html)
+        self.assertIn("<td>APPLE.COM/BILL</td>", report_html)
+
         self.assertEqual(
             build_transaction_report_rows(new_transactions, duplicate_transactions),
             [
