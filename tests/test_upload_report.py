@@ -62,6 +62,18 @@ class UploadReportTests(unittest.TestCase):
             ],
         )
 
+    def test_builds_html_report_without_transactions(self):
+        report_html = build_transaction_report_html([], [])
+
+        self.assertIn(
+            "<h3>Added Transactions</h3>"
+            "<p>No new transactions were added.</p>",
+            report_html
+        )
+        self.assertIn("<h3>Skipped Duplicates</h3>", report_html)
+        self.assertNotIn("<tr class='added-row'>", report_html)
+        self.assertNotIn("<tr class='duplicate-row'>", report_html)
+
     def test_builds_upload_log_row(self):
         self.assertEqual(
             UPLOAD_LOG_HEADER,
