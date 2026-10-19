@@ -6,6 +6,7 @@ from upload_report import (
     build_transaction_report_rows,
     build_transaction_rows_html,
     build_upload_log_row,
+    build_transaction_report_html,
 )
 
 

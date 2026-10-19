@@ -15,8 +15,8 @@ from transaction_processor import (
 from upload_report import (
     UPLOAD_LOG_HEADER,
     build_transaction_report_rows,
-    build_transaction_rows_html,
     build_upload_log_row,
+    build_transaction_report_html,
 )
 from flask import Flask, request, send_from_directory
 from datetime import datetime
@@ -238,30 +238,10 @@ def upload():
             )
 
         # ===== HTML OUTPUT =====
-        # ===== ADDED TRANSACTIONS =====
-        if new_transactions:
-            report_html = (
-                f"<h3>Added Transactions</h3>"
-                f"<table>"
-                f"<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
-            )
-
-            report_html += build_transaction_rows_html(new_transactions, "added-row")
-
-            report_html += "</table>"
-
-        else:
-            report_html = "<h3>Added Transactions</h3><p>No new transactions were added.</p>"
-
-        report_html += "<h3>Skipped Duplicates</h3>"
-        report_html += (
-            "<table>"
-            "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+        report_html = build_transaction_report_html(
+            new_transactions,
+            duplicate_transactions,
         )
-
-        report_html += build_transaction_rows_html(duplicate_transactions, "duplicate-row")
-
-        report_html += "</table>"
 
         return f"""
         <html>
