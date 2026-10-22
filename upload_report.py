@@ -1,4 +1,5 @@
 import csv
+import os
 
 
 TRANSACTION_REPORT_HEADER = ["Status", "Date", "Amount", "Account", "Description"]
@@ -11,6 +12,16 @@ UPLOAD_LOG_HEADER = [
     "Duplicates",
     "Report File",
 ]
+
+
+def append_upload_log_csv(log_path, row):
+    file_exists = os.path.isfile(log_path)
+
+    with open(log_path, mode="a", newline="", encoding="utf-8") as log_file:
+        writer = csv.writer(log_file)
+        if not file_exists:
+            writer.writerow(UPLOAD_LOG_HEADER)
+        writer.writerow(row)
 
 
 def write_transaction_report_csv(report_path, new_transactions, duplicate_transactions):

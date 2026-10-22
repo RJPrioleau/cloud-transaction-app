@@ -1,6 +1,5 @@
 import os
 import gspread
-import csv
 import webbrowser
 import threading
 from budget_sheet import (
@@ -13,7 +12,7 @@ from transaction_processor import (
     split_new_and_duplicate_transactions,
 )
 from upload_report import (
-    UPLOAD_LOG_HEADER,
+    append_upload_log_csv,
     write_transaction_report_csv,
     build_upload_log_row,
     build_transaction_report_html,
@@ -215,25 +214,18 @@ def upload():
 
         # ===== LOGGING =====
         log_file_path = os.path.join(log_folder, "upload_log.csv")
-        file_exists = os.path.isfile(log_file_path)
-
-        with open(log_file_path, mode="a", newline="", encoding="utf-8") as log_file:
-            log_writer = csv.writer(log_file)
-
-            if not file_exists:
-                log_writer.writerow(UPLOAD_LOG_HEADER)
-
-            log_writer.writerow(
-                build_upload_log_row(
-                    datetime.now(),
-                    month,
-                    len(files),
-                    len(all_transactions),
-                    len(new_transactions),
-                    len(duplicate_transactions),
-                    report_filename,
-                )
-            )
+        append_upload_log_csv(
+            log_file_path,
+            build_upload_log_row(
+                datetime.now(),
+                month,
+                len(files),
+                len(all_transactions),
+                len(new_transactions),
+                len(duplicate_transactions),
+                report_filename,
+            ),
+        )
 
         # ===== HTML OUTPUT =====
         report_html = build_transaction_report_html(

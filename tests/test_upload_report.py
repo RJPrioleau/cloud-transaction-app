@@ -6,6 +6,7 @@ from pathlib import Path
 
 from upload_report import (
     UPLOAD_LOG_HEADER,
+    append_upload_log_csv,
     build_transaction_report_rows,
     build_transaction_rows_html,
     build_upload_log_row,
@@ -15,6 +16,25 @@ from upload_report import (
 
 
 class UploadReportTests(unittest.TestCase):
+    def test_appends_upload_log_entries_without_repeating_header(self):
+        first_row = ["2026-09-01 12:00:00", "SEP", 1, 2, 1, 1, "first.csv"]
+        second_row = ["2026-09-02 12:00:00", "SEP", 1, 1, 0, 1, 'café, "report".csv']
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            log_path = Path(temporary_directory) / "upload_log.csv"
+
+            append_upload_log_csv(log_path, first_row)
+            append_upload_log_csv(log_path, second_row)
+
+            with log_path.open(newline="", encoding="utf-8") as log_file:
+                rows = list(csv.reader(log_file))
+
+        self.assertEqual(rows, [
+            UPLOAD_LOG_HEADER,
+            [str(value) for value in first_row],
+            [str(value) for value in second_row],
+        ])
+
     def test_writes_utf8_csv_with_quoted_fields_and_replaces_previous_content(self):
         description = 'CAFÉ, "CORNER"\nSERVICE'
         transactions = [{

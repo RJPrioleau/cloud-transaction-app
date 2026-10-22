@@ -34,7 +34,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - The app is currently a small Flask application.
 - Most route and Google Sheets workflow code lives in `app.py`.
 - Transaction parsing and category matching live in `transaction_processor.py`.
-- Report row/HTML construction and CSV report writing live in `upload_report.py`. The Flask route chooses the report path and invokes the writer; upload-log file writing remains in the route.
+- Report row/HTML construction, CSV report writing, and upload-log appending live in `upload_report.py`. The Flask route chooses file paths and supplies report data and log rows to the writers. The log writer adds a header when the log file does not yet exist.
 - Generated uploads, reports, logs, virtual environments, and credentials are local-only files.
 
 ## Open Decisions
