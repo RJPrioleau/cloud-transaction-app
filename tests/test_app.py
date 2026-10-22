@@ -58,6 +58,71 @@ class UploadRouteTests(unittest.TestCase):
 
     @patch("app.gspread.authorize")
     @patch("app.Credentials.from_service_account_file")
+    def test_multiple_files_are_sorted_and_deduplicated_together(
+        self, load_credentials, authorize
+    ):
+        worksheet = Mock()
+        worksheet.get_all_values.return_value = []
+        worksheet.acell.return_value.value = ""
+        authorize.return_value.open.return_value.worksheet.return_value = worksheet
+
+        original_directory = Path.cwd()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            try:
+                os.chdir(temporary_directory)
+                Path("credentials.json").write_text("{}", encoding="utf-8")
+                with patch("app.CREDENTIALS_FILE", "credentials.json"):
+                    response = self.client.post(
+                        "/upload",
+                        data={
+                            "month": "SEP",
+                            "file": [
+                                (
+                                    io.BytesIO(
+                                        b"Date,Description,Amount\n"
+                                        b"09/03/2026,SHELL SERVICE,-42.10\n"
+                                    ),
+                                    "SoFi Checking-2695-first.csv",
+                                ),
+                                (
+                                    io.BytesIO(
+                                        b"Date,Description,Amount\n"
+                                        b"09/01/2026,APPLE.COM/BILL,-5.99\n"
+                                        b"09/03/2026,SHELL SERVICE,-42.10\n"
+                                    ),
+                                    "SoFi Checking-2695-second.csv",
+                                ),
+                            ],
+                        },
+                    )
+
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                self.assertIn("Processed 3 transactions from 2 file(s)", html)
+                self.assertIn("Added: <strong>2</strong>", html)
+                self.assertIn("Skipped duplicates: <strong>1</strong>", html)
+                worksheet.batch_update.assert_called_once_with([
+                    {"range": "H69:H70", "values": [["09/01/2026"], ["09/03/2026"]]},
+                    {"range": "I69:I70", "values": [["Apple Music"], ["Gas"]]},
+                    {"range": "K69:K70", "values": [[5.99], [42.1]]},
+                    {"range": "O69:O70", "values": [["SoFi Checking (2695)"]] * 2},
+                    {"range": "P69:P70", "values": [["APPLE.COM/BILL"], ["SHELL SERVICE"]]},
+                ])
+                report_paths = list(Path("reports").glob("*.csv"))
+                self.assertEqual(len(report_paths), 1)
+                with report_paths[0].open(newline="", encoding="utf-8") as report_file:
+                    rows = list(csv.reader(report_file))
+                self.assertEqual([row[0] for row in rows[1:]], ["ADDED", "ADDED", "DUPLICATE"])
+                self.assertEqual([row[1] for row in rows[1:]], ["09/01/2026", "09/03/2026", "09/03/2026"])
+                with Path("logs/upload_log.csv").open(newline="", encoding="utf-8") as log_file:
+                    log_rows = list(csv.reader(log_file))
+                self.assertEqual(len(log_rows), 2)
+                self.assertEqual(log_rows[1][1:6], ["SEP", "2", "3", "2", "1"])
+            finally:
+                os.chdir(original_directory)
+
+    @patch("app.gspread.authorize")
+    @patch("app.Credentials.from_service_account_file")
     def test_failed_sheet_write_does_not_create_report_or_log(
         self, load_credentials, authorize
     ):
