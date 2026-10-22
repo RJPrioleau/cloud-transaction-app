@@ -1,3 +1,21 @@
+from transaction_processor import split_new_and_duplicate_transactions
+
+
+def import_transactions_to_worksheet(worksheet, transactions):
+    existing_rows = worksheet.get_all_values()
+    new_transactions, duplicate_transactions = split_new_and_duplicate_transactions(
+        existing_rows[68:], transactions
+    )
+    destination_row = find_first_empty_transaction_row(worksheet)
+
+    if new_transactions:
+        worksheet.batch_update(
+            build_transaction_batch_updates(destination_row, new_transactions)
+        )
+
+    return new_transactions, duplicate_transactions
+
+
 def find_first_empty_transaction_row(worksheet, start_row=69):
     current_row = start_row
 

@@ -1,9 +1,11 @@
 import unittest
 from datetime import datetime
+from unittest.mock import Mock
 
 from budget_sheet import (
     build_transaction_batch_updates,
     find_first_empty_transaction_row,
+    import_transactions_to_worksheet,
 )
 
 
@@ -21,6 +23,37 @@ class FakeWorksheet:
 
 
 class BudgetSheetTests(unittest.TestCase):
+    def test_import_ignores_rows_before_transaction_section_and_appends_after_occupied_row(self):
+        transaction = {
+            "date": datetime(2026, 9, 1),
+            "budget_name": "Gas",
+            "amount": 42.1,
+            "account": "Example Checking",
+            "description": "SHELL SERVICE",
+        }
+        matching_row_above_section = [""] * 16
+        matching_row_above_section[7] = "09/01/2026"
+        matching_row_above_section[10] = "42.10"
+        matching_row_above_section[14] = "Example Checking"
+        matching_row_above_section[15] = "SHELL SERVICE"
+        worksheet = Mock()
+        worksheet.get_all_values.return_value = (
+            [[] for _ in range(67)] + [matching_row_above_section] + [[""] * 16]
+        )
+        worksheet.acell.side_effect = [FakeCell("09/02/2026"), FakeCell("")]
+
+        added, duplicates = import_transactions_to_worksheet(worksheet, [transaction])
+
+        self.assertEqual(added, [transaction])
+        self.assertEqual(duplicates, [])
+        worksheet.batch_update.assert_called_once_with([
+            {"range": "H70:H70", "values": [["09/01/2026"]]},
+            {"range": "I70:I70", "values": [["Gas"]]},
+            {"range": "K70:K70", "values": [[42.1]]},
+            {"range": "O70:O70", "values": [["Example Checking"]]},
+            {"range": "P70:P70", "values": [["SHELL SERVICE"]]},
+        ])
+
     def test_finds_first_empty_transaction_row(self):
         worksheet = FakeWorksheet({
             "H69": "09/01/2026",

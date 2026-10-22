@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Consolidated worksheet duplicate checking and transaction writes in `budget_sheet.py`, preserving the row-69 start and writable columns.
 - Moved upload-log file appending into `upload_report.py`, preserving existing entries and the header-on-file-creation behavior.
 - Moved CSV report file writing into `upload_report.py`, preserving UTF-8 encoding, CSV formatting, and overwrite behavior; verified with report-file and upload-route tests.
 - Added initial transaction processor characterization tests for CSV and XLSX parsing.

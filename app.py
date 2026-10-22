@@ -2,14 +2,10 @@ import os
 import gspread
 import webbrowser
 import threading
-from budget_sheet import (
-    build_transaction_batch_updates,
-    find_first_empty_transaction_row,
-)
+from budget_sheet import import_transactions_to_worksheet
 from transaction_processor import (
     detect_account_from_filename,
     process_transactions,
-    split_new_and_duplicate_transactions,
 )
 from upload_report import (
     append_upload_log_csv,
@@ -190,20 +186,13 @@ def upload():
         sheet = client.open(SPREADSHEET_NAME)
         worksheet = sheet.worksheet(month)
 
-        existing_rows = worksheet.get_all_values()
-
-        new_transactions, duplicate_transactions = split_new_and_duplicate_transactions(
-            existing_rows[68:],
+        new_transactions, duplicate_transactions = import_transactions_to_worksheet(
+            worksheet,
             all_transactions,
         )
 
         total_added_amount = sum(float(item["amount"]) for item in new_transactions)
         total_duplicate_amount = sum(float(item["amount"]) for item in duplicate_transactions)
-        main_destination_row = find_first_empty_transaction_row(worksheet)
-
-        if new_transactions:
-            start_row = main_destination_row
-            worksheet.batch_update(build_transaction_batch_updates(start_row, new_transactions))
 
         # ===== REPORT FILE =====
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

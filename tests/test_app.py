@@ -58,6 +58,47 @@ class UploadRouteTests(unittest.TestCase):
 
     @patch("app.gspread.authorize")
     @patch("app.Credentials.from_service_account_file")
+    def test_failed_sheet_write_does_not_create_report_or_log(
+        self, load_credentials, authorize
+    ):
+        worksheet = Mock()
+        worksheet.get_all_values.return_value = []
+        worksheet.acell.return_value.value = ""
+        worksheet.batch_update.side_effect = RuntimeError("Worksheet write rejected")
+        authorize.return_value.open.return_value.worksheet.return_value = worksheet
+
+        original_directory = Path.cwd()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            try:
+                os.chdir(temporary_directory)
+                Path("credentials.json").write_text("{}", encoding="utf-8")
+                with patch("app.CREDENTIALS_FILE", "credentials.json"):
+                    response = self.client.post(
+                        "/upload",
+                        data={
+                            "month": "SEP",
+                            "file": (
+                                io.BytesIO(
+                                    b"Date,Description,Amount\n"
+                                    b"09/01/2026,SHELL SERVICE,-42.10\n"
+                                ),
+                                "SoFi Checking-2695.csv",
+                            ),
+                        },
+                    )
+
+                html = response.get_data(as_text=True)
+                self.assertIn("Something went wrong", html)
+                self.assertIn("Worksheet write rejected", html)
+                self.assertNotIn("Download Report", html)
+                worksheet.batch_update.assert_called_once()
+                self.assertEqual(list(Path("reports").iterdir()), [])
+                self.assertEqual(list(Path("logs").iterdir()), [])
+            finally:
+                os.chdir(original_directory)
+
+    @patch("app.gspread.authorize")
+    @patch("app.Credentials.from_service_account_file")
     def test_duplicate_only_upload_skips_sheet_write_and_still_produces_report(
         self, load_credentials, authorize
     ):
