@@ -1,4 +1,18 @@
+import gspread
+from google.oauth2.service_account import Credentials
+
 from transaction_processor import split_new_and_duplicate_transactions
+
+
+def open_budget_worksheet(credentials_path, spreadsheet_name, month):
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    credentials = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+    client = gspread.authorize(credentials)
+    spreadsheet = client.open(spreadsheet_name)
+    return spreadsheet.worksheet(month)
 
 
 def import_transactions_to_worksheet(worksheet, transactions):

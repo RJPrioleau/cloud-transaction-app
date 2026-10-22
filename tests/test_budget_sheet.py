@@ -1,11 +1,12 @@
 import unittest
 from datetime import datetime
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from budget_sheet import (
     build_transaction_batch_updates,
     find_first_empty_transaction_row,
     import_transactions_to_worksheet,
+    open_budget_worksheet,
 )
 
 
@@ -23,6 +24,25 @@ class FakeWorksheet:
 
 
 class BudgetSheetTests(unittest.TestCase):
+    @patch("budget_sheet.gspread.authorize")
+    @patch("budget_sheet.Credentials.from_service_account_file")
+    def test_opens_configured_workbook_and_month_with_service_account(
+        self, load_credentials, authorize
+    ):
+        worksheet = open_budget_worksheet("example-credentials.json", "Example Budget", "SEP")
+
+        load_credentials.assert_called_once_with(
+            "example-credentials.json",
+            scopes=[
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://www.googleapis.com/auth/drive",
+            ],
+        )
+        authorize.assert_called_once_with(load_credentials.return_value)
+        authorize.return_value.open.assert_called_once_with("Example Budget")
+        authorize.return_value.open.return_value.worksheet.assert_called_once_with("SEP")
+        self.assertIs(worksheet, authorize.return_value.open.return_value.worksheet.return_value)
+
     def test_import_ignores_rows_before_transaction_section_and_appends_after_occupied_row(self):
         transaction = {
             "date": datetime(2026, 9, 1),

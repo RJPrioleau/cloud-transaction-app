@@ -56,8 +56,8 @@ class UploadRouteTests(unittest.TestCase):
             "Could not detect account from filename: unknown.csv",
         )
 
-    @patch("app.gspread.authorize")
-    @patch("app.Credentials.from_service_account_file")
+    @patch("budget_sheet.gspread.authorize")
+    @patch("budget_sheet.Credentials.from_service_account_file")
     def test_multiple_files_are_sorted_and_deduplicated_together(
         self, load_credentials, authorize
     ):
@@ -121,8 +121,8 @@ class UploadRouteTests(unittest.TestCase):
             finally:
                 os.chdir(original_directory)
 
-    @patch("app.gspread.authorize")
-    @patch("app.Credentials.from_service_account_file")
+    @patch("budget_sheet.gspread.authorize")
+    @patch("budget_sheet.Credentials.from_service_account_file")
     def test_failed_sheet_write_does_not_create_report_or_log(
         self, load_credentials, authorize
     ):
@@ -162,8 +162,8 @@ class UploadRouteTests(unittest.TestCase):
             finally:
                 os.chdir(original_directory)
 
-    @patch("app.gspread.authorize")
-    @patch("app.Credentials.from_service_account_file")
+    @patch("budget_sheet.gspread.authorize")
+    @patch("budget_sheet.Credentials.from_service_account_file")
     def test_duplicate_only_upload_skips_sheet_write_and_still_produces_report(
         self, load_credentials, authorize
     ):
@@ -222,8 +222,8 @@ class UploadRouteTests(unittest.TestCase):
             finally:
                 os.chdir(original_directory)
 
-    @patch("app.gspread.authorize")
-    @patch("app.Credentials.from_service_account_file")
+    @patch("budget_sheet.gspread.authorize")
+    @patch("budget_sheet.Credentials.from_service_account_file")
     def test_upload_writes_only_new_transactions_and_reports_duplicates(
         self, load_credentials, authorize
     ):

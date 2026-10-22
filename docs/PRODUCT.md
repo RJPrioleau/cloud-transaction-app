@@ -32,10 +32,10 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 ## Known Technical Shape
 
 - The app is currently a small Flask application.
-- Most route and Google Sheets workflow code lives in `app.py`.
+- Flask routes and upload workflow coordination live in `app.py`.
 - Transaction parsing and category matching live in `transaction_processor.py`.
 - Uploaded-file validation, safe filename storage, account detection, parser calls, and combined date sorting live in `upload_processing.py`. Its helper returns transactions plus an optional validation message; storage/parser exceptions propagate to the route. The route handles missing file selection and creates output folders. Files are still saved before account detection, and earlier saved uploads remain if a later file fails validation.
-- Worksheet import orchestration lives in `budget_sheet.py`: it checks duplicates against rows starting at row 69, finds the first empty transaction row, writes new transactions to columns H, I, K, O, and P, and returns added and duplicate lists. Authentication and worksheet selection remain in `app.py`.
+- Google authentication, worksheet selection, and worksheet import orchestration live in `budget_sheet.py`: it checks duplicates against rows starting at row 69, finds the first empty transaction row, writes new transactions to columns H, I, K, O, and P, and returns added and duplicate lists. The route supplies the credentials path, workbook name, and month, and handles the missing-credentials response.
 - Report row/HTML construction, CSV report writing, and upload-log appending live in `upload_report.py`. The Flask route chooses file paths and supplies report data and log rows to the writers. The log writer adds a header when the log file does not yet exist.
 - Generated uploads, reports, logs, virtual environments, and credentials are local-only files.
 

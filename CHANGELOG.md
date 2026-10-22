@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved Google service-account authentication and workbook/month selection into `budget_sheet.py`; the Flask route retains configuration and its missing-credentials response.
 - Extracted uploaded-file processing into `upload_processing.py`, preserving validation messages, file-save order, account detection, and combined transaction sorting.
 - Consolidated worksheet duplicate checking and transaction writes in `budget_sheet.py`, preserving the row-69 start and writable columns.
 - Moved upload-log file appending into `upload_report.py`, preserving existing entries and the header-on-file-creation behavior.

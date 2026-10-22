@@ -1,8 +1,7 @@
 import os
-import gspread
 import webbrowser
 import threading
-from budget_sheet import import_transactions_to_worksheet
+from budget_sheet import import_transactions_to_worksheet, open_budget_worksheet
 from upload_processing import process_uploaded_files
 from upload_report import (
     append_upload_log_csv,
@@ -12,7 +11,6 @@ from upload_report import (
 )
 from flask import Flask, request, send_from_directory
 from datetime import datetime
-from google.oauth2.service_account import Credentials
 
 
 SPREADSHEET_NAME = os.environ.get(
@@ -139,11 +137,6 @@ def upload():
             return validation_error
 
         # ===== GOOGLE SHEETS =====
-        SCOPES = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-        ]
-
         if not os.path.isfile(CREDENTIALS_FILE):
             return f"""
             <html>
@@ -156,11 +149,7 @@ def upload():
             </html>
             """
 
-        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
-        client = gspread.authorize(creds)
-
-        sheet = client.open(SPREADSHEET_NAME)
-        worksheet = sheet.worksheet(month)
+        worksheet = open_budget_worksheet(CREDENTIALS_FILE, SPREADSHEET_NAME, month)
 
         new_transactions, duplicate_transactions = import_transactions_to_worksheet(
             worksheet,
