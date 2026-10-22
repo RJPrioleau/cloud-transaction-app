@@ -3,10 +3,7 @@ import gspread
 import webbrowser
 import threading
 from budget_sheet import import_transactions_to_worksheet
-from transaction_processor import (
-    detect_account_from_filename,
-    process_transactions,
-)
+from upload_processing import process_uploaded_files
 from upload_report import (
     append_upload_log_csv,
     write_transaction_report_csv,
@@ -16,7 +13,6 @@ from upload_report import (
 from flask import Flask, request, send_from_directory
 from datetime import datetime
 from google.oauth2.service_account import Credentials
-from werkzeug.utils import secure_filename
 
 
 SPREADSHEET_NAME = os.environ.get(
@@ -136,31 +132,11 @@ def upload():
         os.makedirs(report_folder, exist_ok=True)
         os.makedirs(log_folder, exist_ok=True)
 
-        all_transactions = []
-
-        for file in files:
-            if file.filename == "":
-                continue
-
-            original_filename = file.filename
-            extension = os.path.splitext(original_filename)[1].lower()
-
-            if extension not in ALLOWED_EXTENSIONS:
-                return "Invalid file type detected. Please upload only .csv or .xlsx files."
-
-            safe_filename = secure_filename(original_filename)
-            filepath = os.path.join(upload_folder, safe_filename)
-            file.save(filepath)
-
-            detected_account = detect_account_from_filename(original_filename)
-
-            if detected_account is None:
-                return f"Could not detect account from filename: {original_filename}"
-
-            transactions = process_transactions(filepath, detected_account, month)
-            all_transactions.extend(transactions)
-
-        all_transactions.sort(key=lambda item: item["date"])
+        all_transactions, validation_error = process_uploaded_files(
+            files, upload_folder, month, ALLOWED_EXTENSIONS
+        )
+        if validation_error is not None:
+            return validation_error
 
         # ===== GOOGLE SHEETS =====
         SCOPES = [
