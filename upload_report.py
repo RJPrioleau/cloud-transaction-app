@@ -1,3 +1,6 @@
+import csv
+
+
 TRANSACTION_REPORT_HEADER = ["Status", "Date", "Amount", "Account", "Description"]
 UPLOAD_LOG_HEADER = [
     "Timestamp",
@@ -10,6 +13,12 @@ UPLOAD_LOG_HEADER = [
 ]
 
 
+def write_transaction_report_csv(report_path, new_transactions, duplicate_transactions):
+    with open(report_path, mode="w", newline="", encoding="utf-8") as report_file:
+        writer = csv.writer(report_file)
+        writer.writerows(build_transaction_report_rows(new_transactions, duplicate_transactions))
+
+
 def build_transaction_report_rows(new_transactions, duplicate_transactions):
     rows = [TRANSACTION_REPORT_HEADER]
 
@@ -20,6 +29,7 @@ def build_transaction_report_rows(new_transactions, duplicate_transactions):
         rows.append(build_transaction_report_row("DUPLICATE", item))
 
     return rows
+
 
 def build_transaction_report_html(new_transactions, duplicate_transactions):
     if new_transactions:
@@ -44,6 +54,7 @@ def build_transaction_report_html(new_transactions, duplicate_transactions):
     report_html += "</table>"
 
     return report_html
+
 
 def build_transaction_report_row(status, item):
     return [

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved CSV report file writing into `upload_report.py`, preserving UTF-8 encoding, CSV formatting, and overwrite behavior; verified with report-file and upload-route tests.
 - Added initial transaction processor characterization tests for CSV and XLSX parsing.
 - Added project collaboration instructions and continuity workflow.
 - Added roadmap for legacy triage, incremental restructuring, and later feature planning.

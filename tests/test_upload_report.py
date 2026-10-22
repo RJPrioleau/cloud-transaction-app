@@ -1,5 +1,8 @@
+import csv
+import tempfile
 import unittest
 from datetime import datetime
+from pathlib import Path
 
 from upload_report import (
     UPLOAD_LOG_HEADER,
@@ -7,10 +10,34 @@ from upload_report import (
     build_transaction_rows_html,
     build_upload_log_row,
     build_transaction_report_html,
+    write_transaction_report_csv,
 )
 
 
 class UploadReportTests(unittest.TestCase):
+    def test_writes_utf8_csv_with_quoted_fields_and_replaces_previous_content(self):
+        description = 'CAFÉ, "CORNER"\nSERVICE'
+        transactions = [{
+            "date": datetime(2026, 9, 1),
+            "amount": 42.1,
+            "account": "Example Checking",
+            "description": description,
+        }]
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            report_path = Path(temporary_directory) / "report.csv"
+            report_path.write_text("previous report content", encoding="utf-8")
+
+            write_transaction_report_csv(report_path, transactions, [])
+
+            with report_path.open(newline="", encoding="utf-8") as report_file:
+                rows = list(csv.reader(report_file))
+
+        self.assertEqual(rows, [
+            ["Status", "Date", "Amount", "Account", "Description"],
+            ["ADDED", "09/01/2026", "42.10", "Example Checking", description],
+        ])
+
     def test_builds_transaction_report_rows_with_added_then_duplicates(self):
         new_transactions = [
             {

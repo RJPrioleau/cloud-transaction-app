@@ -14,7 +14,7 @@ from transaction_processor import (
 )
 from upload_report import (
     UPLOAD_LOG_HEADER,
-    build_transaction_report_rows,
+    write_transaction_report_csv,
     build_upload_log_row,
     build_transaction_report_html,
 )
@@ -211,9 +211,7 @@ def upload():
         report_filename = f"transaction_report_{month}_{timestamp}.csv"
         report_path = os.path.join(report_folder, report_filename)
 
-        with open(report_path, mode="w", newline="", encoding="utf-8") as report_file:
-            writer = csv.writer(report_file)
-            writer.writerows(build_transaction_report_rows(new_transactions, duplicate_transactions))
+        write_transaction_report_csv(report_path, new_transactions, duplicate_transactions)
 
         # ===== LOGGING =====
         log_file_path = os.path.join(log_folder, "upload_log.csv")
