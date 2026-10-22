@@ -290,5 +290,37 @@ class UploadRouteTests(unittest.TestCase):
                 os.chdir(original_directory)
 
 
+class ReportDownloadTests(unittest.TestCase):
+    def test_download_returns_csv_contents_as_attachment(self):
+        report_bytes = b"Status,Date,Amount,Account,Description\r\n"
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            report_folder = Path(temporary_directory) / "reports"
+            report_folder.mkdir()
+            (report_folder / "example.csv").write_bytes(report_bytes)
+
+            with patch.object(app, "root_path", temporary_directory):
+                with app.test_client().get("/download/example.csv") as response:
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.data, report_bytes)
+                    self.assertEqual(
+                        response.headers["Content-Disposition"],
+                        "attachment; filename=example.csv",
+                    )
+
+    def test_download_rejects_missing_report_and_parent_directory_path(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            (Path(temporary_directory) / "reports").mkdir()
+            (Path(temporary_directory) / "outside.csv").write_text(
+                "outside report folder", encoding="utf-8"
+            )
+
+            with patch.object(app, "root_path", temporary_directory):
+                for url in ("/download/missing.csv", "/download/..%2Foutside.csv"):
+                    with self.subTest(url=url):
+                        with app.test_client().get(url) as response:
+                            self.assertEqual(response.status_code, 404)
+                            self.assertNotIn(b"outside report folder", response.data)
+
+
 if __name__ == "__main__":
     unittest.main()
