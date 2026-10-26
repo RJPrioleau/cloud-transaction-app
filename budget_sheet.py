@@ -46,9 +46,8 @@ def import_transactions_to_worksheet(worksheet, transactions):
     new_transactions, duplicate_transactions = split_new_and_duplicate_transactions(
         existing_rows[68:], transactions
     )
-    destination_row = find_first_empty_transaction_row(worksheet)
-
     if new_transactions:
+        destination_row = find_first_empty_transaction_row(existing_rows)
         worksheet.batch_update(
             build_transaction_batch_updates(destination_row, new_transactions)
         )
@@ -56,13 +55,12 @@ def import_transactions_to_worksheet(worksheet, transactions):
     return new_transactions, duplicate_transactions
 
 
-def find_first_empty_transaction_row(worksheet, start_row=69):
-    current_row = start_row
-
-    while worksheet.acell(f"H{current_row}").value:
-        current_row += 1
-
-    return current_row
+def find_first_empty_transaction_row(existing_rows, start_row=69):
+    """Find the first blank date cell using the already-fetched worksheet rows."""
+    for row_number, row in enumerate(existing_rows[start_row - 1:], start_row):
+        if len(row) < 8 or not row[7]:
+            return row_number
+    return max(start_row, len(existing_rows) + 1)
 
 
 def build_transaction_batch_updates(start_row, transactions):

@@ -11,19 +11,6 @@ from budget_sheet import (
 )
 
 
-class FakeCell:
-    def __init__(self, value):
-        self.value = value
-
-
-class FakeWorksheet:
-    def __init__(self, occupied_cells):
-        self.occupied_cells = occupied_cells
-
-    def acell(self, cell_name):
-        return FakeCell(self.occupied_cells.get(cell_name))
-
-
 class BudgetSheetTests(unittest.TestCase):
     def test_reset_clears_only_import_constants_within_test_boundary(self):
         worksheet = Mock(title="TEST")
@@ -89,15 +76,18 @@ class BudgetSheetTests(unittest.TestCase):
         matching_row_above_section[14] = "Example Checking"
         matching_row_above_section[15] = "SHELL SERVICE"
         worksheet = Mock()
+        occupied_row = [""] * 16
+        occupied_row[7] = "09/02/2026"
         worksheet.get_all_values.return_value = (
-            [[] for _ in range(67)] + [matching_row_above_section] + [[""] * 16]
+            [[] for _ in range(67)] + [matching_row_above_section, occupied_row]
         )
-        worksheet.acell.side_effect = [FakeCell("09/02/2026"), FakeCell("")]
 
         added, duplicates = import_transactions_to_worksheet(worksheet, [transaction])
 
         self.assertEqual(added, [transaction])
         self.assertEqual(duplicates, [])
+        worksheet.get_all_values.assert_called_once_with()
+        worksheet.acell.assert_not_called()
         worksheet.batch_update.assert_called_once_with([
             {"range": "H70:H70", "values": [["09/01/2026"]]},
             {"range": "I70:I70", "values": [["Gas"]]},
@@ -107,12 +97,42 @@ class BudgetSheetTests(unittest.TestCase):
         ])
 
     def test_finds_first_empty_transaction_row(self):
-        worksheet = FakeWorksheet({
-            "H69": "09/01/2026",
-            "H70": "09/02/2026",
-        })
+        occupied_row = [""] * 7 + ["09/01/2026"]
+        for label, rows, start, expected in [
+            ("empty sheet", [], 69, 69),
+            ("occupied dates", [[]] * 68 + [occupied_row, occupied_row], 69, 71),
+            ("gap before later content", [[]] * 68 + [occupied_row, [], occupied_row], 69, 70),
+            ("short row", [[]] * 68 + [["other content"]], 69, 69),
+            ("custom start", [[]] * 9 + [occupied_row], 10, 11),
+        ]:
+            with self.subTest(case=label):
+                self.assertEqual(find_first_empty_transaction_row(rows, start), expected)
 
-        self.assertEqual(find_first_empty_transaction_row(worksheet), 71)
+    def test_duplicate_only_295_row_upload_reads_values_once_and_never_scans_cells(self):
+        transactions = []
+        rows = [[] for _ in range(68)]
+        for index in range(295):
+            description = f"Synthetic transaction {index}"
+            transactions.append({
+                "date": datetime(2026, 9, 1), "amount": 1.0,
+                "account": "Example Checking", "description": description,
+            })
+            row = [""] * 16
+            row[7], row[10], row[14], row[15] = (
+                "09/01/2026", "1.00", "Example Checking", description
+            )
+            rows.append(row)
+        worksheet = Mock()
+        worksheet.get_all_values.return_value = rows
+        worksheet.acell.side_effect = AssertionError("Per-cell network reads are forbidden")
+
+        added, duplicates = import_transactions_to_worksheet(worksheet, transactions)
+
+        self.assertEqual(added, [])
+        self.assertEqual(duplicates, transactions)
+        worksheet.get_all_values.assert_called_once_with()
+        worksheet.acell.assert_not_called()
+        worksheet.batch_update.assert_not_called()
 
     def test_builds_transaction_batch_updates_for_writable_columns(self):
         transactions = [

@@ -87,7 +87,6 @@ class UploadRouteTests(unittest.TestCase):
     ):
         worksheet = Mock()
         worksheet.get_all_values.return_value = []
-        worksheet.acell.return_value.value = ""
         authorize.return_value.open.return_value.worksheet.return_value = worksheet
 
         original_directory = Path.cwd()
@@ -152,7 +151,6 @@ class UploadRouteTests(unittest.TestCase):
     ):
         worksheet = Mock()
         worksheet.get_all_values.return_value = []
-        worksheet.acell.return_value.value = ""
         worksheet.batch_update.side_effect = RuntimeError("Worksheet write rejected")
         authorize.return_value.open.return_value.worksheet.return_value = worksheet
 
@@ -199,7 +197,6 @@ class UploadRouteTests(unittest.TestCase):
         existing_row[15] = "APPLE.COM/BILL"
         worksheet = Mock()
         worksheet.get_all_values.return_value = [[] for _ in range(68)] + [existing_row]
-        worksheet.acell.return_value.value = ""
         authorize.return_value.open.return_value.worksheet.return_value = worksheet
 
         original_directory = Path.cwd()
@@ -259,7 +256,6 @@ class UploadRouteTests(unittest.TestCase):
         existing_row[15] = "APPLE.COM/BILL"
         worksheet = Mock()
         worksheet.get_all_values.return_value = [[] for _ in range(68)] + [existing_row]
-        worksheet.acell.return_value.value = ""
         authorize.return_value.open.return_value.worksheet.return_value = worksheet
 
         bank_export = (
@@ -293,11 +289,11 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertIn("<td>APPLE.COM/BILL</td>", html)
 
                 worksheet.batch_update.assert_called_once_with([
-                    {"range": "H69:H69", "values": [["09/01/2026"]]},
-                    {"range": "I69:I69", "values": [["Gas"]]},
-                    {"range": "K69:K69", "values": [[42.1]]},
-                    {"range": "O69:O69", "values": [["SoFi Checking (2695)"]]},
-                    {"range": "P69:P69", "values": [["SHELL SERVICE"]]},
+                    {"range": "H70:H70", "values": [["09/01/2026"]]},
+                    {"range": "I70:I70", "values": [["Gas"]]},
+                    {"range": "K70:K70", "values": [[42.1]]},
+                    {"range": "O70:O70", "values": [["SoFi Checking (2695)"]]},
+                    {"range": "P70:P70", "values": [["SHELL SERVICE"]]},
                 ])
                 report_paths = list(Path("reports").glob("*.csv"))
                 self.assertEqual(len(report_paths), 1)
