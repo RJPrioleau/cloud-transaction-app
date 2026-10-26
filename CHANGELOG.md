@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Moved the results-page layout into `templates/report.html`, preserving summary formatting, transaction HTML, download links, styling, and legacy escaping behavior.
 - Moved the home-page upload form into `templates/upload.html`, preserving its content, styling, and default month selection.
 - Moved Google service-account authentication and workbook/month selection into `budget_sheet.py`; the Flask route retains configuration and its missing-credentials response.
 - Extracted uploaded-file processing into `upload_processing.py`, preserving validation messages, file-save order, account detection, and combined transaction sorting.

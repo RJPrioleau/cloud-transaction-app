@@ -106,130 +106,18 @@ def upload():
             duplicate_transactions,
         )
 
-        return f"""
-        <html>
-        <head>
-            <title>Transaction Report</title>
-            <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    background-color: #f4f6f8;
-                }}
-
-                .header {{
-                    background-color: #1f2937;
-                    color: white;
-                    padding: 20px;
-                    text-align: center;
-                    font-size: 22px;
-                    font-weight: bold;
-                }}
-
-                .container {{
-                    max-width: 1000px;
-                    margin: 30px auto;
-                    padding: 20px;
-                }}
-
-                .card {{
-                    background: white;
-                    padding: 25px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-                }}
-
-                h3 {{
-                    margin-top: 30px;
-                    color: #333;
-                }}
-
-                table {{
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 10px;
-                }}
-
-                th {{
-                    background-color: #111827;
-                    color: white;
-                    padding: 10px;
-                    text-align: left;
-                }}
-
-                td {{
-                    padding: 10px;
-                    border-bottom: 1px solid #eee;
-                }}
-
-                tr:hover {{
-                    background-color: #f9fafb;
-                }}
-
-                .summary {{
-                    margin-bottom: 20px;
-                    font-size: 15px;
-                    color: #444;
-                }}
-
-                .buttons {{
-                    margin-top: 20px;
-                }}
-
-                .button {{
-                    display: inline-block;
-                    background-color: #2563eb;
-                    color: white;
-                    padding: 10px 16px;
-                    text-decoration: none;
-                    border-radius: 6px;
-                    margin-right: 10px;
-                    font-weight: 500;
-                }}
-
-                .button.secondary {{
-                    background-color: #6b7280;
-                }}
-
-                .button:hover {{
-                    opacity: 0.9;
-                }}
-                .added-row {{
-                    background-color: #ecfdf5
-                }}
-                .duplicate-row {{
-                    background-color: #fff1f2
-                }}
-            </style>
-        </head>
-        <body>
-
-        <div class="header">
-            Transaction Processor
-        </div>
-
-        <div class="container">
-            <div class="card">
-                <h2>Transaction Report</h2>
-
-                <div class="summary">
-                    Processed {len(all_transactions)} transactions from {len(files)} file(s) into <strong>{month}</strong>.<br>
-                    Added: <strong>{len(new_transactions)}</strong> totaling <strong>${total_added_amount:.2f}</strong> |
-                    Skipped duplicates: <strong>{len(duplicate_transactions)}</strong> totaling <strong>${total_duplicate_amount:.2f}</strong>
-                </div>
-
-                {report_html}
-
-                <div class="buttons">
-                    <a class="button" href="/download/{report_filename}">Download Report</a>
-                    <a class="button secondary" href="/">Back</a>
-                </div>
-            </div>
-        </div>
-
-        </body>
-        </html>
-        """
+        return render_template(
+            "report.html",
+            processed_count=len(all_transactions),
+            file_count=len(files),
+            month=month,
+            added_count=len(new_transactions),
+            duplicate_count=len(duplicate_transactions),
+            total_added_amount=total_added_amount,
+            total_duplicate_amount=total_duplicate_amount,
+            report_html=report_html,
+            report_filename=report_filename,
+        )
 
     except Exception as e:
         return f"""

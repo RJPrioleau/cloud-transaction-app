@@ -262,6 +262,8 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertIn("Processed 2 transactions", html)
                 self.assertIn("Added: <strong>1</strong>", html)
                 self.assertIn("Skipped duplicates: <strong>1</strong>", html)
+                self.assertIn("totaling <strong>$42.10</strong>", html)
+                self.assertIn("totaling <strong>$5.99</strong>", html)
                 self.assertIn("<td>SHELL SERVICE</td>", html)
                 self.assertIn("<td>APPLE.COM/BILL</td>", html)
 
