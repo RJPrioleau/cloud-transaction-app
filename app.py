@@ -1,7 +1,8 @@
 import os
 import webbrowser
 import threading
-from budget_sheet import import_transactions_to_worksheet, open_budget_worksheet
+import secrets
+from budget_sheet import clear_test_imports, import_transactions_to_worksheet, open_budget_worksheet
 from upload_processing import process_uploaded_files
 from upload_report import (
     append_upload_log_csv,
@@ -9,7 +10,7 @@ from upload_report import (
     build_upload_log_row,
     build_transaction_report_html,
 )
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory, session
 from datetime import datetime
 
 
@@ -25,10 +26,40 @@ ALLOWED_EXTENSIONS = {".csv", ".xlsx"}
 def open_browser():
     webbrowser.open("http://127.0.0.1:5000")
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)
 
 @app.route("/")
 def home():
     return render_template("upload.html")
+
+
+@app.route("/reset-test", methods=["GET", "POST"])
+def reset_test():
+    if request.method == "GET":
+        token = secrets.token_urlsafe(32)
+        session["reset_test_token"] = token
+        return render_template("reset_test.html", token=token)
+
+    expected_token = session.pop("reset_test_token", None)
+    if (
+        not expected_token
+        or not secrets.compare_digest(expected_token, request.form.get("token", ""))
+        or request.form.get("confirmed") != "yes"
+        or request.form.get("month", "TEST") != "TEST"
+    ):
+        return "Reset was not confirmed. Open Reset TEST and confirm again.", 400
+
+    if not os.path.isfile(CREDENTIALS_FILE):
+        return render_template(
+            "missing_credentials.html", credentials_path=CREDENTIALS_FILE
+        ), 400
+
+    try:
+        worksheet = open_budget_worksheet(CREDENTIALS_FILE, SPREADSHEET_NAME, "TEST")
+        cleared_ranges = clear_test_imports(worksheet)
+        return render_template("reset_test.html", completed=True, changed=bool(cleared_ranges))
+    except Exception as error:
+        return render_template("upload_error.html", error_message=str(error)), 500
 
 
 @app.route("/upload", methods=["POST"])

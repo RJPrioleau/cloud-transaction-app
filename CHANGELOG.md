@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a confirmed TEST-only reset for imported constant values in H/I/K/O/P rows 69–383, preserving formulas, formatting, and other workbook content. Added boundary, live-month rejection, and one-use confirmation tests.
 - Extracted missing-credentials and general upload-error pages into templates, preserving messages, return links, HTTP status codes, and legacy escaping behavior.
 - Moved the results-page layout into `templates/report.html`, preserving summary formatting, transaction HTML, download links, styling, and legacy escaping behavior.
 - Moved the home-page upload form into `templates/upload.html`, preserving its content, styling, and default month selection.

@@ -52,6 +52,13 @@ After current problems and restructuring direction are understood, define the ne
 - [ ] Document approved requirements before implementation.
 - [ ] Build features as small verified slices.
 
+### Reset TEST - approved slice
+
+- [x] Add a TEST-only reset with explicit confirmation for imported constants in H, I, K, O, and P, rows 69–383.
+- [x] Preserve formulas, formatting, live months, and local reports/logs; verify boundaries and confirmation with mocked tests.
+- [x] User verification through the local app against TEST; a read-only follow-up confirmed no constant values remain in the reset columns within rows 69–383.
+- [ ] Decide how future transaction-section row expansion is represented and how imports are prevented from overflowing into the following section. Current reset deliberately leaves rows below 383 untouched.
+
 ## Phase 4 - Budgeting Architecture Design
 
 Status: Planned

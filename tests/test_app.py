@@ -317,6 +317,69 @@ class UploadRouteTests(unittest.TestCase):
                 os.chdir(original_directory)
 
 
+class ResetTestRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.client = app.test_client()
+
+    def confirmation_data(self):
+        response = self.client.get("/reset-test")
+        self.assertEqual(response.status_code, 200)
+        with self.client.session_transaction() as state:
+            token = state["reset_test_token"]
+        return {"token": token, "confirmed": "yes"}
+
+    @patch("app.open_budget_worksheet")
+    def test_confirmation_page_never_connects_to_sheets(self, open_worksheet):
+        response = self.client.get("/reset-test")
+        self.assertIn(b"69", response.data)
+        self.assertIn(b"383", response.data)
+        self.assertIn(b'name="confirmed"', response.data)
+        open_worksheet.assert_not_called()
+
+    @patch("app.open_budget_worksheet")
+    def test_unconfirmed_invalid_and_live_month_requests_never_connect(self, open_worksheet):
+        self.assertEqual(self.client.post("/reset-test", data={}).status_code, 400)
+        for case in ("missing_token", "wrong_token", "missing_confirmation", "live_month"):
+            with self.subTest(case=case):
+                data = self.confirmation_data()
+                if case == "missing_token":
+                    data.pop("token")
+                elif case == "wrong_token":
+                    data["token"] = "wrong"
+                elif case == "missing_confirmation":
+                    data.pop("confirmed")
+                else:
+                    data["month"] = "SEP"
+                self.assertEqual(self.client.post("/reset-test", data=data).status_code, 400)
+        open_worksheet.assert_not_called()
+
+    @patch("app.clear_test_imports", return_value=5)
+    @patch("app.open_budget_worksheet")
+    @patch("app.os.path.isfile", return_value=True)
+    def test_confirmed_reset_targets_test_and_cannot_be_replayed(
+        self, file_exists, open_worksheet, clear_imports
+    ):
+        from app import CREDENTIALS_FILE, SPREADSHEET_NAME
+        data = self.confirmation_data()
+        response = self.client.post("/reset-test", data=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"have been cleared", response.data)
+        open_worksheet.assert_called_once_with(CREDENTIALS_FILE, SPREADSHEET_NAME, "TEST")
+        clear_imports.assert_called_once_with(open_worksheet.return_value)
+        self.assertEqual(self.client.post("/reset-test", data=data).status_code, 400)
+        clear_imports.assert_called_once()
+
+    @patch("app.clear_test_imports", side_effect=RuntimeError("Reset rejected"))
+    @patch("app.open_budget_worksheet")
+    @patch("app.os.path.isfile", return_value=True)
+    def test_failed_reset_does_not_report_success(self, file_exists, open_worksheet, clear_imports):
+        data = self.confirmation_data()
+        response = self.client.post("/reset-test", data=data)
+        self.assertEqual(response.status_code, 500)
+        self.assertIn(b"Reset rejected", response.data)
+        self.assertNotIn(b"have been cleared", response.data)
+
+
 class ReportDownloadTests(unittest.TestCase):
     def test_download_returns_csv_contents_as_attachment(self):
         report_bytes = b"Status,Date,Amount,Account,Description\r\n"

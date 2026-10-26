@@ -25,6 +25,9 @@ Current priority:
 - Google Sheets write workflow
 - Browser-based upload report
 - Local generated CSV reports and upload logs
+- Confirmed TEST-only reset of imported values in rows 69–383, preserving formulas and formatting
+
+To start a fresh TEST import, open **Reset TEST imported transactions** from the upload page, review the scope, check the confirmation box, and submit. It clears only H, I, K, O, and P within rows 69–383. Entries below row 383 and local report/log files remain unchanged.
 
 ## Documentation
 

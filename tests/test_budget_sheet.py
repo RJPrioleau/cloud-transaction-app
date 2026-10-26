@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from budget_sheet import (
+    clear_test_imports,
     build_transaction_batch_updates,
     find_first_empty_transaction_row,
     import_transactions_to_worksheet,
@@ -24,6 +25,37 @@ class FakeWorksheet:
 
 
 class BudgetSheetTests(unittest.TestCase):
+    def test_reset_clears_only_import_constants_within_test_boundary(self):
+        worksheet = Mock(title="TEST")
+        rows = [[""] * 9 for _ in range(316)]
+        rows[0] = ["09/01/2026", "Gas", "preserve J", 0, "preserve L", "", "preserve N", "Checking", "Example"]
+        rows[1][0] = "=TODAY()"
+        rows[2][0] = "09/03/2026"
+        rows[314][0] = "09/30/2026"
+        rows[315][0] = "outside reset boundary"
+        worksheet.get.return_value = rows
+
+        clear_test_imports(worksheet)
+
+        worksheet.get.assert_called_once_with("H69:P383", value_render_option="FORMULA")
+        worksheet.batch_clear.assert_called_once_with([
+            "H69:H69", "H71:H71", "H383:H383", "I69:I69",
+            "K69:K69", "O69:O69", "P69:P69",
+        ])
+
+    def test_reset_does_not_write_when_section_is_empty(self):
+        worksheet = Mock(title="TEST")
+        worksheet.get.return_value = []
+        self.assertEqual(clear_test_imports(worksheet), 0)
+        worksheet.batch_clear.assert_not_called()
+
+    def test_reset_rejects_live_worksheet_before_reading_or_clearing(self):
+        worksheet = Mock(title="SEP")
+        with self.assertRaises(ValueError):
+            clear_test_imports(worksheet)
+        worksheet.get.assert_not_called()
+        worksheet.batch_clear.assert_not_called()
+
     @patch("budget_sheet.gspread.authorize")
     @patch("budget_sheet.Credentials.from_service_account_file")
     def test_opens_configured_workbook_and_month_with_service_account(

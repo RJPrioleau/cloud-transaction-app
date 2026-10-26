@@ -29,6 +29,13 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - Generated CSV report files.
 - Generated upload log entries.
 
+## Reset TEST
+
+- The upload page links to a separate Reset TEST confirmation page. A confirmed POST with a one-use session token clears constant values only in H, I, K, O, and P, rows 69–383, on the worksheet named exactly `TEST`.
+- Formula cells, formatting, headings, other columns and rows, live-month worksheets, and local reports/logs are preserved. Missing/invalid confirmation never connects to Sheets. An empty section requires no clear request.
+- The current template's imported section ends at row 383. Reset does not clear overflow entries below that row, including existing imports observed in rows 384–398 during setup. The upload writer currently does not enforce this ending row.
+- Future use may require adding transaction rows at the bottom of the imported section. How the app discovers and enforces an expanded section boundary remains an open decision; this reset does not assume all lower worksheet rows are safe to clear.
+
 ## Known Technical Shape
 
 - The app is currently a small Flask application.

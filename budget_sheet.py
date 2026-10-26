@@ -4,6 +4,32 @@ from google.oauth2.service_account import Credentials
 from transaction_processor import split_new_and_duplicate_transactions
 
 
+def clear_test_imports(worksheet):
+    """Clear constant import values in TEST rows 69–383, preserving formulas."""
+    if worksheet.title != "TEST":
+        raise ValueError("Reset is available only for the TEST worksheet.")
+
+    rows = worksheet.get("H69:P383", value_render_option="FORMULA")
+    ranges = []
+    for column, offset in (("H", 0), ("I", 1), ("K", 3), ("O", 7), ("P", 8)):
+        run_start = None
+        for row_number in range(69, 385):
+            row = rows[row_number - 69] if row_number <= 383 and row_number - 69 < len(rows) else []
+            value = row[offset] if offset < len(row) else ""
+            clearable = value not in ("", None) and not (
+                isinstance(value, str) and value.startswith("=")
+            )
+            if clearable and run_start is None:
+                run_start = row_number
+            elif not clearable and run_start is not None:
+                ranges.append(f"{column}{run_start}:{column}{row_number - 1}")
+                run_start = None
+
+    if ranges:
+        worksheet.batch_clear(ranges)
+    return len(ranges)
+
+
 def open_budget_worksheet(credentials_path, spreadsheet_name, month):
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
