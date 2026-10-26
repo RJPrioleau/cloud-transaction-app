@@ -29,6 +29,30 @@ class UploadRouteTests(unittest.TestCase):
             "No file selected. Please select at least one file.",
         )
 
+    @patch("app.open_budget_worksheet")
+    @patch("app.os.makedirs")
+    @patch("app.process_uploaded_files", return_value=([], None))
+    def test_missing_credentials_shows_configured_path_without_connecting(
+        self, process_files, make_directories, open_worksheet
+    ):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            missing_path = str(Path(temporary_directory) / "missing-credentials.json")
+            with patch("app.CREDENTIALS_FILE", missing_path):
+                response = self.client.post(
+                    "/upload",
+                    data={
+                        "month": "SEP",
+                        "file": (io.BytesIO(b"example"), "SoFi Checking-2695.csv"),
+                    },
+                )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn("Google credentials are missing", html)
+        self.assertIn(f"Expected service account credentials at: {missing_path}", html)
+        self.assertIn('<a href="/">Back to Upload</a>', html)
+        open_worksheet.assert_not_called()
+
     @patch("app.os.makedirs")
     def test_upload_rejects_unsupported_file_type(self, make_directories):
         response = self.client.post(
@@ -155,6 +179,7 @@ class UploadRouteTests(unittest.TestCase):
                 html = response.get_data(as_text=True)
                 self.assertIn("Something went wrong", html)
                 self.assertIn("Worksheet write rejected", html)
+                self.assertIn('<a href="/">Back to Upload</a>', html)
                 self.assertNotIn("Download Report", html)
                 worksheet.batch_update.assert_called_once()
                 self.assertEqual(list(Path("reports").iterdir()), [])

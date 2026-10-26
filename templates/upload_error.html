@@ -1,0 +1,11 @@
+{# Preserve legacy error rendering during extraction. #}
+{% autoescape false %}
+<html>
+<body style="font-family: Arial; padding: 20px;">
+    <h2 style="color: red;">Something went wrong</h2>
+    <p>{{ error_message }}</p>
+    <br>
+    <a href="/">Back to Upload</a>
+</body>
+</html>
+{% endautoescape %}

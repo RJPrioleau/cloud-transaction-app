@@ -57,16 +57,9 @@ def upload():
 
         # ===== GOOGLE SHEETS =====
         if not os.path.isfile(CREDENTIALS_FILE):
-            return f"""
-            <html>
-            <body style="font-family: Arial; padding: 20px;">
-                <h2 style="color: red;">Google credentials are missing</h2>
-                <p>Expected service account credentials at: {CREDENTIALS_FILE}</p>
-                <br>
-                <a href="/">Back to Upload</a>
-            </body>
-            </html>
-            """
+            return render_template(
+                "missing_credentials.html", credentials_path=CREDENTIALS_FILE
+            )
 
         worksheet = open_budget_worksheet(CREDENTIALS_FILE, SPREADSHEET_NAME, month)
 
@@ -120,16 +113,9 @@ def upload():
         )
 
     except Exception as e:
-        return f"""
-        <html>
-        <body style="font-family: Arial; padding: 20px;">
-            <h2 style="color: red;">Something went wrong</h2>
-            <p>{str(e)}</p>
-            <br>
-            <a href="/">Back to Upload</a>
-        </body>
-        </html>
-        """
+        return render_template(
+            "upload_error.html", error_message=str(e)
+        )
 
 @app.route("/download/<filename>")
 def download_file(filename):
