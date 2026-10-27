@@ -85,7 +85,9 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Income Calendar Persistence - Development Only
 
-The first database slice provides create/read functions for income sources and **draft** official pay dates. There is no income-calendar browser interface yet. It does not change transaction imports, Google Sheets, account balances, or funding decisions.
+The database provides create/read functions and a browser interface for income sources and **draft** official pay dates. It does not change transaction imports, Google Sheets, account balances, or funding decisions.
+
+After database setup below, run `.\start_app.ps1 -Restart` and select **Draft Income Calendar** on the upload page (http://127.0.0.1:5000/income). Create a synthetic income source, select it, and add official dates with optional pay-period boundaries and a reference. Dates appear chronologically and remain drafts. Validation errors preserve form entries. Successful submissions redirect to a read-only GET, so refreshing the resulting page does not resubmit the form. Deliberately submitting the same values again can still create another record; duplicate review is deferred. Forms use session tokens. Restarting the server may require reopening the form.
 
 With the project virtual environment active, run from the project root:
 
@@ -99,7 +101,7 @@ SQLAlchemy defines records and database operations; Alembic records and applies 
 
 By default, the database is `instance/development.sqlite3`, resolved from the repository root rather than the terminal's current folder. The ignored `instance/` directory is for **synthetic development data only**. `DATABASE_URL` can select another development database; do not point development commands at real financial records. PostgreSQL is the approved shared-deployment target, but no PostgreSQL driver, service, or deployment is introduced in this slice.
 
-The repository functions in `income_repository.py` accept a SQLAlchemy session. Use `database.session_scope(engine)` around an operation: it commits all successful changes together and rolls everything back on failure. Paydays and optional pay-period boundaries are Python `date` values. Created timestamps are stored as UTC without an offset for consistent SQLite storage. Newly created pay dates can only be drafts; they do not represent received deposits. There are no edit, delete, scheduling, or confirmation operations yet. Source names and source/date pairs are not assumed unique; duplicate-submission policy will be designed with the input interface.
+The repository functions in `income_repository.py` accept a SQLAlchemy session. Use `database.session_scope(engine)` around an operation: it commits all successful changes together and rolls everything back on failure. Paydays and optional pay-period boundaries are Python `date` values. Created timestamps are stored as UTC without an offset for consistent SQLite storage. Newly created pay dates can only be drafts; they do not represent received deposits. There are no edit, delete, scheduling, or confirmation operations yet. Source names and source/date pairs are not assumed unique.
 
 Run the focused acceptance tests:
 

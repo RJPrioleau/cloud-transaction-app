@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Draft Income Calendar</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 960px; margin: 2rem auto; padding: 1rem; }
+        label { display: block; margin: 1rem 0; }
+        input { display: block; padding: .5rem; max-width: 100%; }
+        th, td { text-align: left; padding: .6rem; border-bottom: 1px solid #ccc; }
+        .error { color: #a00; }
+    </style>
+</head>
+<body>
+<nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.calendar') }}">Income sources</a></nav>
+<h1>Draft Income Calendar</h1>
+<p>Synthetic development data only. Draft dates describe expected paydays, not received deposits or available funds.</p>
+{% if unavailable %}
+<p role="alert">Income calendar database unavailable. Complete database setup with <code>python -m alembic upgrade head</code> from the project folder, or check your database connection. The upload page remains available.</p>
+{% else %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<h2>Income sources</h2>
+<ul>
+{% for item in sources %}
+<li><a href="{{ url_for('income.calendar', source_id=item.id) }}">{{ item.name }}</a></li>
+{% else %}<li>No income sources yet.</li>{% endfor %}
+</ul>
+{% if source %}
+<h2>{{ source.name }} — Draft official pay dates</h2>
+<table>
+<thead><tr><th>Official payday</th><th>Pay-period start</th><th>Pay-period end</th><th>Reference</th><th>Status</th></tr></thead>
+<tbody>
+{% for item in dates %}
+<tr><td>{{ item.official_pay_date }}</td><td>{{ item.pay_period_start or '' }}</td><td>{{ item.pay_period_end or '' }}</td><td>{{ item.source_reference or '' }}</td><td>Draft</td></tr>
+{% else %}<tr><td colspan="5">No draft dates yet.</td></tr>{% endfor %}
+</tbody></table>
+<h2>Add draft official pay date</h2>
+{% else %}<h2>Add income source</h2>{% endif %}
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+{% if source %}
+<label>Official payday <input type="date" name="official_pay_date" value="{{ values.get('official_pay_date', '') }}" required></label>
+<label>Pay-period start (optional) <input type="date" name="pay_period_start" value="{{ values.get('pay_period_start', '') }}"></label>
+<label>Pay-period end (optional) <input type="date" name="pay_period_end" value="{{ values.get('pay_period_end', '') }}"></label>
+<label>Reference (optional) <input name="source_reference" maxlength="500" value="{{ values.get('source_reference', '') }}"></label>
+{% else %}
+<label>Source name <input name="name" maxlength="200" value="{{ values.get('name', '') }}" required></label>
+{% endif %}
+<button type="submit">{{ 'Add draft date' if source else 'Create source' }}</button>
+</form>
+{% endif %}
+</body></html>

@@ -10,8 +10,8 @@ Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; d
 - [x] Add explicit database sessions and an initial Alembic migration; importing modules creates no database.
 - [x] Add create/read operations, input validation, database constraints, and whole-operation rollback.
 - [x] Verify migrations, repeat upgrades, persistence across reopen, and synthetic backup recovery.
-- [x] Run all 45 baseline tests alongside new acceptance tests (58 total passing). Commit remains subject to user review and approval.
-- [ ] Next separately approved slice: browser creation/viewing of sources and draft pay dates.
+- [x] Run all 45 baseline tests alongside persistence acceptance tests (58 total passing); committed as `ff0b6a5`.
+- [x] Approved browser creation/viewing of sources and draft pay dates, with validation and redirect after saving. Interface acceptance tests added; browser visual review remains pending.
 - [ ] Test PostgreSQL migrations and transactional behavior before real financial use.
 
 ## Approved Development Direction - Dependency Gates
