@@ -39,6 +39,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 
 ### Report Columns
 
+- The browser report includes an alphabetically ordered Budget Name Summary above the detailed tables. Each category shows separate added/duplicate counts and amount totals, calculated with decimal arithmetic. Empty uploads show a no-transactions message. Totals use transaction magnitudes and are not spending-only totals.
 - New CSV reports use `Status`, `Date`, `Amount`, `Account`, `Description`, and `Budget Name`, in that order. Browser report tables show the same transaction fields, with added/duplicate status represented by separate sections.
 - `Budget Name` shows the category assigned while parsing this upload, including for skipped duplicates. It does not read back or change an existing worksheet row's category. Reports generated before this column was added retain their original contents.
 

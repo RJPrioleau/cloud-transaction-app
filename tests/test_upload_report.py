@@ -2,10 +2,12 @@ import csv
 import tempfile
 import unittest
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 from upload_report import (
     UPLOAD_LOG_HEADER,
+    build_budget_summary,
     append_upload_log_csv,
     build_transaction_report_rows,
     build_transaction_rows_html,
@@ -16,6 +18,29 @@ from upload_report import (
 
 
 class UploadReportTests(unittest.TestCase):
+    def test_budget_summary_groups_statuses_and_sums_decimal_amounts(self):
+        added = [
+            {"budget_name": "Round up Transfer", "amount": 0.1},
+            {"budget_name": "MISC", "amount": 10},
+            {"budget_name": "Round up Transfer", "amount": 0.2},
+        ]
+        duplicates = [
+            {"budget_name": "Round up Transfer", "amount": 0.57},
+            {"budget_name": "Gas", "amount": 42.1},
+        ]
+
+        self.assertEqual(build_budget_summary(added, duplicates), [
+            {"budget_name": "Gas", "added_count": 0, "added_total": Decimal("0"),
+             "duplicate_count": 1, "duplicate_total": Decimal("42.1")},
+            {"budget_name": "MISC", "added_count": 1, "added_total": Decimal("10"),
+             "duplicate_count": 0, "duplicate_total": Decimal("0")},
+            {"budget_name": "Round up Transfer", "added_count": 2, "added_total": Decimal("0.3"),
+             "duplicate_count": 1, "duplicate_total": Decimal("0.57")},
+        ])
+
+    def test_budget_summary_is_empty_without_transactions(self):
+        self.assertEqual(build_budget_summary([], []), [])
+
     def test_appends_upload_log_entries_without_repeating_header(self):
         first_row = ["2026-09-01 12:00:00", "SEP", 1, 2, 1, 1, "first.csv"]
         second_row = ["2026-09-02 12:00:00", "SEP", 1, 1, 0, 1, 'café, "report".csv']

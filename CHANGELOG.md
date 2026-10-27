@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a browser Budget Name summary with separate added and duplicate counts and decimal amount totals above the detailed transaction tables.
 - Added `Budget Name` to newly generated browser and CSV transaction reports for both added and duplicate entries; existing report files remain unchanged.
 - Added a managed local start/restart/status/stop workflow with an exclusive localhost listener and startup source fingerprint, avoiding stale overlapping app processes. Updated the batch launcher to use it.
 - Categorized descriptions beginning with `Roundup ` as `Round up Transfer`, matching the savings-summary label instead of falling back to `MISC`.

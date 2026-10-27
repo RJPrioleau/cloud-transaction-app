@@ -286,6 +286,8 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertIn("totaling <strong>$42.10</strong>", html)
                 self.assertIn("totaling <strong>$5.99</strong>", html)
                 self.assertIn("<td>SHELL SERVICE</td>", html)
+                self.assertRegex(html, r"<td>Gas</td>\s*<td>1</td>\s*<td>\$42\.10</td>\s*<td>0</td>\s*<td>\$0\.00</td>")
+                self.assertRegex(html, r"<td>Apple Music</td>\s*<td>0</td>\s*<td>\$0\.00</td>\s*<td>1</td>\s*<td>\$5\.99</td>")
                 self.assertIn("<th>Budget Name</th>", html)
                 self.assertIn("<td>Gas</td>", html)
                 self.assertIn("<td>Apple Music</td>", html)

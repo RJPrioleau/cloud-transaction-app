@@ -1,5 +1,6 @@
 import csv
 import os
+from decimal import Decimal
 
 
 TRANSACTION_REPORT_HEADER = ["Status", "Date", "Amount", "Account", "Description", "Budget Name"]
@@ -12,6 +13,24 @@ UPLOAD_LOG_HEADER = [
     "Duplicates",
     "Report File",
 ]
+
+
+def build_budget_summary(new_transactions, duplicate_transactions):
+    summaries = {}
+    for status, transactions in (("added", new_transactions), ("duplicate", duplicate_transactions)):
+        for item in transactions:
+            name = item["budget_name"]
+            if name not in summaries:
+                summaries[name] = {
+                    "budget_name": name,
+                    "added_count": 0,
+                    "added_total": Decimal("0"),
+                    "duplicate_count": 0,
+                    "duplicate_total": Decimal("0"),
+                }
+            summaries[name][f"{status}_count"] += 1
+            summaries[name][f"{status}_total"] += Decimal(str(item["amount"]))
+    return sorted(summaries.values(), key=lambda row: row["budget_name"].casefold())
 
 
 def append_upload_log_csv(log_path, row):

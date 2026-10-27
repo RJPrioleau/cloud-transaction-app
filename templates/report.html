@@ -111,6 +111,29 @@
             Skipped duplicates: <strong>{{ duplicate_count }}</strong> totaling <strong>${{ "%.2f"|format(total_duplicate_amount) }}</strong>
         </div>
 
+        <h3>Budget Name Summary</h3>
+        <p>Amounts are transaction totals, not spending-only totals. Skipped duplicates were not added again.</p>
+        {% if budget_summary %}
+        <table id="budget-summary">
+            <thead>
+                <tr><th>Budget Name</th><th>Added Count</th><th>Added Total</th><th>Duplicate Count</th><th>Duplicate Total</th></tr>
+            </thead>
+            <tbody>
+                {% for item in budget_summary %}
+                <tr>
+                    <td>{{ item.budget_name|e }}</td>
+                    <td>{{ item.added_count }}</td>
+                    <td>${{ "%.2f"|format(item.added_total) }}</td>
+                    <td>{{ item.duplicate_count }}</td>
+                    <td>${{ "%.2f"|format(item.duplicate_total) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No transactions to summarize.</p>
+        {% endif %}
+
         {{ report_html }}
 
         <div class="buttons">
