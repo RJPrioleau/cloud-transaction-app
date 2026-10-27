@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a read-only 90-day projected-income page across saved income sources. Uses per-payday overrides before defaults, lists dates chronologically, totals known amounts in integer cents, and flags missing amounts. No database migration or actual-income/balance changes.
+
 - Added expected take-home pay defaults and per-payday overrides, stored as integer cents with nonnegative constraints. Blank amounts mean unknown/inherit; zero is explicit. Added amount forms, projected displays, migration preservation, validation, and backup recovery tests. User approved real local pay-calendar/expected-net planning data; shared deployment and other financial workflows remain gated.
 
 - Added a yearly payday selector labeled with the income source and year. Users click dates and save them together as Draft; saved dates are marked and skipped on repeated submission. Includes leap-year, validation, persistence, source-isolation, and batch-rollback coverage. PDF calendar importing is deferred.

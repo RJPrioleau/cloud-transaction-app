@@ -4,6 +4,8 @@ This roadmap records approved project direction and implementation milestones. T
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+- [x] Add the approved read-only 90-day projected-income view across sources, with exact-cent known totals and explicit unknown amounts. No database migration or received-income behavior.
+
 The approved yearly-selection slice adds a source/year-labeled calendar, batch Draft creation, and skipping already-saved dates. Manual selection replaces PDF importing for the current workflow. Visual browser acceptance remains pending.
 
 Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. The user approved real local pay dates and expected-net projections as a limited prototype exception to synthetic-only development. Local records do not synchronize. Deployment, purchases, and existing bank-data migration are not approved.

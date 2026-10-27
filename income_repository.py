@@ -1,5 +1,5 @@
 """Create/read operations; the caller owns the transaction via session_scope."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 import re
 
@@ -28,6 +28,31 @@ def net_amount_text(cents):
 def expected_net_cents(source, payday):
     return (payday.expected_net_override_cents if payday.expected_net_override_cents is not None
             else source.expected_net_cents)
+
+
+def income_forecast(session, start):
+    """Project saved occurrences for today plus the following 89 calendar days."""
+    end = start + timedelta(days=90)
+    query = (
+        select(IncomeSource, OfficialPayDate)
+        .join(OfficialPayDate, OfficialPayDate.income_source_id == IncomeSource.id)
+        .where(OfficialPayDate.official_pay_date >= start, OfficialPayDate.official_pay_date < end)
+        .order_by(OfficialPayDate.official_pay_date, IncomeSource.name, OfficialPayDate.id)
+    )
+    rows = []
+    total = 0
+    unknown = 0
+    for source, payday in session.execute(query):
+        amount = expected_net_cents(source, payday)
+        rows.append({"source_id": source.id, "source_name": source.name,
+                     "date": payday.official_pay_date, "amount": amount,
+                     "override": payday.expected_net_override_cents is not None})
+        if amount is None:
+            unknown += 1
+        else:
+            total += amount
+    return {"start": start, "last_day": end - timedelta(days=1), "rows": rows,
+            "total": total, "unknown": unknown}
 
 
 def create_income_source(session, name):

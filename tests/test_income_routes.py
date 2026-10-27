@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import date, timedelta
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -11,7 +12,7 @@ from database import PROJECT_ROOT, create_database_engine, session_scope
 from income_repository import list_income_sources, list_official_pay_dates
 from income_routes import income
 from income_repository import create_official_pay_date
-from income_repository import parse_net_cents, expected_net_cents, net_amount_text
+from income_repository import parse_net_cents, expected_net_cents, net_amount_text, income_forecast
 from sqlalchemy.exc import SQLAlchemyError
 
 
@@ -208,3 +209,61 @@ class IncomeRouteTests(unittest.TestCase):
         source = SimpleNamespace(expected_net_cents=292591)
         self.assertEqual(expected_net_cents(source, SimpleNamespace(expected_net_override_cents=0)), 0)
         self.assertEqual(expected_net_cents(source, SimpleNamespace(expected_net_override_cents=None)), 292591)
+
+    def test_forecast_boundaries_multiple_sources_overrides_and_exact_total(self):
+        start = date(2026, 12, 1)
+        location = self.source("Employer")
+        self.post(location, action="set_default", expected_net="100.01")
+        for offset in (-1, 0, 89, 90):
+            self.post(location, official_pay_date=str(start + timedelta(days=offset)))
+        records = self.saved_dates(location)
+        self.post(location, action="set_override", payday_id=records[2].id, expected_net="125.02")
+        other = self.source("Benefits")
+        self.post(other, official_pay_date=str(start))
+        self.post(other, action="set_default", expected_net="0.01")
+        unknown = self.source("Unknown")
+        self.post(unknown, official_pay_date=str(start + timedelta(days=1)))
+        zero = self.source("Zero")
+        self.post(zero, official_pay_date=str(start + timedelta(days=2)))
+        self.post(zero, action="set_override", payday_id=self.saved_dates(zero)[0].id, expected_net="0.00")
+        engine = create_database_engine(self.url)
+        try:
+            with session_scope(engine) as db:
+                result = income_forecast(db, start)
+            self.assertEqual(result["total"], 22504)
+            self.assertEqual(result["unknown"], 1)
+            self.assertEqual(len(result["rows"]), 5)
+            self.assertEqual(result["last_day"], start + timedelta(days=89))
+            self.assertEqual([r["date"] for r in result["rows"]], sorted(r["date"] for r in result["rows"]))
+        finally:
+            engine.dispose()
+        with patch("income_routes.date") as clock_date:
+            clock_date.today.return_value = start
+            response = self.client.get("/income/forecast")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"$225.04", response.data)
+        self.assertIn(b"Incomplete estimate: 1", response.data)
+        self.assertIn(b"$0.00", response.data)
+        self.assertIn(b"Payday override", response.data)
+        self.assertEqual(len(self.saved_dates(location)), 4)
+
+    def test_empty_forecast_and_unknown_only_forecast(self):
+        response = self.client.get("/income/forecast")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"No saved pay dates", response.data)
+        self.assertIn(b"$0.00", response.data)
+        location = self.source("<Unknown>")
+        self.post(location, official_pay_date=str(date.today()))
+        response = self.client.get("/income/forecast")
+        self.assertIn(b"Amount not set", response.data)
+        self.assertIn(b"&lt;Unknown&gt;", response.data)
+        self.assertIn(b"Incomplete estimate: 1", response.data)
+
+    def test_forecast_does_not_accept_writes_and_handles_unavailable_schema(self):
+        self.assertEqual(self.client.post("/income/forecast").status_code, 405)
+        config = Config(str(PROJECT_ROOT / "alembic.ini"))
+        config.attributes["database_url"] = self.url
+        command.downgrade(config, "base")
+        with self.assertLogs(self.app.logger, level="ERROR"):
+            response = self.client.get("/income/forecast")
+        self.assertEqual(response.status_code, 503)

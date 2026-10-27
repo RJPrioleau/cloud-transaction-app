@@ -85,6 +85,8 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Income Calendar Persistence - Development Only
 
+**90-day projected income** is available from the upload and income-source pages at `/income/forecast`. It lists saved paydays across all sources from this computer's current date through 89 days later, inclusive. It uses payday overrides before source defaults and totals known amounts in integer cents. Missing amounts are shown and excluded from the known total; zero estimates remain explicit. This read-only view does not infer missing paydays, reconcile deposits, flag overdue income, or calculate spendable money. The horizon is fixed at 90 days in this slice; configurable horizons remain deferred.
+
 The user has approved real pay dates and expected net amounts in this local planning prototype. This is a limited exception to the original synthetic-only restriction; bank-transaction migration, confirmed funding, deployment, and shared operation remain unapproved. The local SQLite records do not synchronize to another computer. Tests still use synthetic data only.
 
 On a source page, **Default expected take-home pay** sets the projected net amount for every Draft date without an override, including past dates. Set a **Payday override** to change only that occurrence; clearing it restores the default. Blank default means unknown; zero is an explicit zero estimate. Enter dollars without commas, with at most two decimal places. Amounts are stored as integer cents and never count as deposits, balances, or reserved funds. These are editable projections, not immutable historical forecasts; revision history and effective-dated defaults are deferred. No deduction calculation or forecast total is introduced here.

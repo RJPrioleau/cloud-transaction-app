@@ -18,6 +18,8 @@ The approved product direction expands this importer into a financial planning s
 
 ## Current Workflow
 
+The approved read-only income forecast at `/income/forecast` shows saved paydays from today through today + 89 days inclusive, across all sources, sorted chronologically. The current date comes from the local computer. Expected net uses individual overrides before source defaults; known amounts are summed in integer cents. Unknown amounts are explicitly counted and excluded from the known total; zero is distinct from unknown. Empty periods display an empty state. It neither writes records nor represents deposits, balances, or funds available. Missing calendar dates, overdue deposits, configurable horizons, reconciliation, and recurring generation remain deferred.
+
 1. The user opens the local Flask app.
 2. The user selects a month sheet.
 3. The user uploads one or more `.csv` or `.xlsx` bank export files.

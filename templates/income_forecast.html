@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Projected Income — 90 Days</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 960px; margin: 2rem auto; padding: 1rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: .7rem; border-bottom: 1px solid #ccc; }
+        .notice { padding: 1rem; background: #fff3cd; }
+    </style>
+</head>
+<body>
+<nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.calendar') }}">Income sources</a></nav>
+<h1>Projected Income — Next 90 Days</h1>
+<p>{{ projection.start }} through {{ projection.last_day }}, inclusive. Uses this computer's current date.</p>
+<p>These are Draft estimates from saved pay dates, not confirmed deposits or money available to spend. Missing calendar dates and overdue deposits are not detected by this view.</p>
+<h2>Known expected net total: ${{ net_amount_text(projection.total) }}</h2>
+<p>{{ projection.rows | length }} saved pay date(s) in this period.</p>
+{% if projection.unknown %}
+<p class="notice" role="status">Incomplete estimate: {{ projection.unknown }} pay date(s) have no expected amount and are excluded from the total. Set an amount on the income source page.</p>
+{% endif %}
+<table>
+<thead><tr><th scope="col">Official payday</th><th scope="col">Income source</th><th scope="col">Expected net pay</th><th scope="col">Amount basis</th></tr></thead>
+<tbody>
+{% for row in projection.rows %}
+<tr><td>{{ row.date }}</td><td><a href="{{ url_for('income.calendar', source_id=row.source_id) }}">{{ row.source_name }}</a></td>
+<td>{{ '$' + net_amount_text(row.amount) if row.amount is not none else 'Amount not set' }}</td>
+<td>{{ 'Payday override' if row.override else 'Source default' }}</td></tr>
+{% else %}<tr><td colspan="4">No saved pay dates in this period. Add dates from an income source's yearly calendar.</td></tr>{% endfor %}
+</tbody></table>
+</body></html>

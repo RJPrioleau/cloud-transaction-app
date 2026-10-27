@@ -12,9 +12,27 @@ from income_repository import (
     create_income_source, create_official_pay_date,
     list_income_sources, list_official_pay_dates,
     parse_net_cents, net_amount_text, expected_net_cents,
+    income_forecast,
 )
 
 income = Blueprint("income", __name__)
+
+
+@income.route("/income/forecast", methods=["GET", "POST"])
+def forecast():
+    # Reserve the static path so POST cannot match /income/<source_id>.
+    if request.method == "POST":
+        abort(405)
+    engine = create_database_engine(current_app.config.get("DATABASE_URL"))
+    try:
+        with session_scope(engine) as db:
+            projection = income_forecast(db, date.today())
+        return render_template("income_forecast.html", projection=projection, net_amount_text=net_amount_text)
+    except SQLAlchemyError:
+        current_app.logger.exception("Income forecast database unavailable")
+        return render_template("income_calendar.html", unavailable=True), 503
+    finally:
+        engine.dispose()
 
 
 @income.route("/income/<source_id>/paydates", methods=["GET", "POST"])
