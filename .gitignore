@@ -10,6 +10,7 @@ logs/
 Examples/
 transaction_processor_backup.py
 .idea/
+instance/
 credentials.json
 .env
 .env.*

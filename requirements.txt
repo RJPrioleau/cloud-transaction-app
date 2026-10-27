@@ -2,3 +2,5 @@ Flask>=3.0,<4
 gspread>=6.0,<7
 google-auth>=2.0,<3
 openpyxl>=3.1,<4
+SQLAlchemy>=2.0,<2.2
+alembic>=1.16,<2

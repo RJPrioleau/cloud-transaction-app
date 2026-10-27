@@ -1,0 +1,144 @@
+from datetime import date
+from contextlib import redirect_stdout
+import io
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import inspect, text
+
+from database import PROJECT_ROOT, backup_sqlite_database, create_database_engine, session_scope
+from income_repository import (
+    create_income_source, create_official_pay_date,
+    list_income_sources, list_official_pay_dates,
+)
+
+
+class DatabaseMigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary_directory.cleanup)
+        self.root = Path(self.temporary_directory.name)
+        self.path = self.root / "synthetic income % calendar.sqlite3"
+        self.url = "sqlite:///" + str(self.path)
+        self.config = self.migration_config(self.url)
+
+    def migration_config(self, url):
+        config = Config(str(PROJECT_ROOT / "alembic.ini"))
+        config.attributes["database_url"] = url
+        return config
+
+    def test_module_imports_do_not_create_database_or_parent_directory(self):
+        environment = dict(os.environ)
+        environment["DATABASE_URL"] = "sqlite:///" + str(self.root / "not-created" / "income.sqlite3")
+        result = subprocess.run(
+            [sys.executable, "-c", "import database, income_models, income_repository"],
+            cwd=PROJECT_ROOT, env=environment, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_upgrade_creates_only_initial_records_and_repeat_preserves_data(self):
+        command.upgrade(self.config, "head")
+        engine = create_database_engine(self.url)
+        try:
+            self.assertEqual(set(inspect(engine).get_table_names()), {
+                "alembic_version", "income_sources", "official_pay_dates",
+            })
+            self.assertEqual(
+                {c["name"] for c in inspect(engine).get_columns("official_pay_dates")},
+                {"id", "income_source_id", "official_pay_date", "pay_period_start", "pay_period_end",
+                 "source_reference", "review_status", "created_at"},
+            )
+            with session_scope(engine) as session:
+                source = create_income_source(session, "Example Employer")
+                payday = create_official_pay_date(session, source.id, date(2027, 1, 8))
+            command.upgrade(self.config, "head")
+            with session_scope(engine) as session:
+                self.assertEqual(list_income_sources(session)[0].id, source.id)
+                self.assertEqual(list_official_pay_dates(session, source.id)[0].id, payday.id)
+        finally:
+            engine.dispose()
+
+    def test_empty_schema_can_downgrade_and_upgrade_again(self):
+        command.upgrade(self.config, "head")
+        command.downgrade(self.config, "base")
+        engine = create_database_engine(self.url)
+        try:
+            self.assertNotIn("income_sources", inspect(engine).get_table_names())
+            self.assertNotIn("official_pay_dates", inspect(engine).get_table_names())
+        finally:
+            engine.dispose()
+        command.upgrade(self.config, "head")
+        engine = create_database_engine(self.url)
+        try:
+            self.assertIn("official_pay_dates", inspect(engine).get_table_names())
+        finally:
+            engine.dispose()
+
+    def test_migrated_schema_matches_declared_models(self):
+        command.upgrade(self.config, "head")
+        with redirect_stdout(io.StringIO()):
+            command.check(self.config)
+
+    def test_backup_restores_records_relationships_and_migration_version_after_source_loss(self):
+        command.upgrade(self.config, "head")
+        engine = create_database_engine(self.url)
+        backup_path = self.root / "backup.sqlite3"
+        try:
+            with session_scope(engine) as session:
+                source = create_income_source(session, "Example Employer")
+                payday = create_official_pay_date(
+                    session, source.id, date(2027, 1, 8),
+                    date(2026, 12, 21), date(2027, 1, 3), "Synthetic official calendar",
+                )
+            backup_sqlite_database(engine, backup_path)
+        finally:
+            engine.dispose()
+        # Only a synthetic database in this test's temporary directory is removed.
+        self.path.unlink()
+        restored_path = self.root / "restored.sqlite3"
+        shutil.copy2(backup_path, restored_path)
+        restored_url = "sqlite:///" + str(restored_path)
+        command.upgrade(self.migration_config(restored_url), "head")
+        restored = create_database_engine(restored_url)
+        try:
+            with session_scope(restored) as session:
+                self.assertEqual(list_income_sources(session)[0].id, source.id)
+                saved = list_official_pay_dates(session, source.id)[0]
+                self.assertEqual(
+                    (saved.id, saved.income_source_id, saved.official_pay_date, saved.pay_period_start,
+                     saved.pay_period_end, saved.source_reference, saved.review_status, saved.created_at),
+                    (payday.id, source.id, date(2027, 1, 8), date(2026, 12, 21), date(2027, 1, 3),
+                     "Synthetic official calendar", "draft", payday.created_at),
+                )
+            with restored.connect() as connection:
+                self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
+                self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0001_income_calendar")
+        finally:
+            restored.dispose()
+
+    def test_backup_refuses_to_replace_source_or_existing_backup(self):
+        command.upgrade(self.config, "head")
+        engine = create_database_engine(self.url)
+        try:
+            with self.assertRaises(FileExistsError):
+                backup_sqlite_database(engine, self.path)
+            destination = self.root / "already-exists.sqlite3"
+            destination.write_bytes(b"preserve existing file")
+            with self.assertRaises(FileExistsError):
+                backup_sqlite_database(engine, destination)
+            self.assertEqual(destination.read_bytes(), b"preserve existing file")
+        finally:
+            engine.dispose()
+
+
+if __name__ == "__main__":
+    unittest.main()

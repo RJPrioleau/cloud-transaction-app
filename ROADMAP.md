@@ -1,6 +1,29 @@
 # Roadmap
 
-This roadmap records approved project direction and implementation milestones. The current priority is to stabilize the legacy app, triage known problems, and restructure it in small approved steps so it matches the user's newer project workflow.
+This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task is the first synthetic-data income-calendar persistence slice, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+
+## Current Milestone - Income Calendar Persistence Foundation
+
+Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. SQLite is for synthetic local development only. Deployment, purchases, and existing-data migration are not approved.
+
+- [x] Define income sources and draft official pay dates with stable IDs and source relationships.
+- [x] Add explicit database sessions and an initial Alembic migration; importing modules creates no database.
+- [x] Add create/read operations, input validation, database constraints, and whole-operation rollback.
+- [x] Verify migrations, repeat upgrades, persistence across reopen, and synthetic backup recovery.
+- [x] Run all 45 baseline tests alongside new acceptance tests (58 total passing). Commit remains subject to user review and approval.
+- [ ] Next separately approved slice: browser creation/viewing of sources and draft pay dates.
+- [ ] Test PostgreSQL migrations and transactional behavior before real financial use.
+
+## Approved Development Direction - Dependency Gates
+
+1. Finish this persistence slice, then the small draft calendar interface.
+2. Add reviewed employer-calendar extraction, occurrence exceptions, recurring schedules, and a configurable 90-day forecast. Expected money is never treated as received money.
+3. Connect the existing importer to shared transaction/account identity before actual-income reconciliation; preserve positive-magnitude Sheets output while retaining explicit bank movement in new records.
+4. Add bill candidates/instances, funding deadlines, recommendations, and shortfall views. Bring verified balances and commitment accounting forward before confirming reservations.
+5. Add payment attempts, partial payments, autopay tracking, transfers, and risk; bill-payment clearance requires user confirmation even when other matching can be automatic.
+6. Complete balance/pending reconciliation, then category budgets and discipline, rollover/closing, manual splits and rule management, and the nightly check-in/dashboard. Each requires a separately approved slice.
+
+Hosting, authentication, backup/recovery, operating costs, and shared deployment require a separate review. The external nightly reminder is not an app integration to rebuild. Detailed business decisions such as matching thresholds, holiday rules, and closing/review policies must be resolved before their respective implementations.
 
 ## Phase 0 - Repository Foundation
 

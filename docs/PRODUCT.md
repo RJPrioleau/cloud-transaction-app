@@ -4,6 +4,17 @@
 
 Cloud Transaction App is a personal financial workflow tool. It imports transaction exports, detects duplicates against a Google Sheets budget workbook, adds new transactions to the selected month sheet, and generates report/log files after each upload.
 
+The approved product direction expands this importer into a financial planning system, beginning with Pay Calendar and Bill Funding. Expected income, actual bank movement, budget allocations, recommendations, confirmed reservations, and payment/transfer states must remain distinct. The existing importer is preserved during this expansion.
+
+## Approved Architecture And First Persistence Slice
+
+- One centrally hosted Flask application backed by PostgreSQL is the approved target for a shared desktop/Surface financial dataset. Neither computer should maintain an independently writable authoritative financial copy. SQLAlchemy and Alembic are approved for persistence and schema migrations.
+- Local SQLite is limited to synthetic development/test data. `DATABASE_URL` selects storage; the default is ignored `instance/development.sqlite3`. No hosting, service purchase, PostgreSQL deployment, or migration of existing financial records is approved by this slice.
+- The first implemented foundation is separate from Flask routes and importing: `database.py` manages explicit connections, transactions, and SQLite development backups; `income_models.py` defines records; `income_repository.py` supplies create/read operations; `migrations/` owns schema changes. Module imports never initialize tables.
+- `IncomeSource` stores a stable ID, name, and creation timestamp. `OfficialPayDate` stores a stable ID, source foreign key, official payday, optional pay-period boundaries/source reference, creation timestamp, and draft review status. UTC creation timestamps are stored without an offset. Pay dates are calendar dates, not receipts. Records cannot be confirmed through this slice and have no monetary fields, balance effects, or funding effects.
+- Names and calendar values are validated. Foreign keys and draft/period-order constraints are enforced by the database. Operations commit or roll back as a unit. Source names and source/date pairs are not automatically merged or assumed unique; input idempotency and duplicate review remain for the interface design. Editing, deletion, historical revision tracking, recurring generation, and calendar-file extraction are not part of this first create/read slice.
+- Migrations and backup/restore are exercised against temporary synthetic SQLite databases. PostgreSQL integration, concurrency behavior, authentication, production recovery, and shared deployment still require their own implementation/verification before real financial use. The next proposed slice is an income-source/draft-pay-date interface, subject to approval.
+
 ## Current Workflow
 
 1. The user opens the local Flask app.
@@ -79,7 +90,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - Do not add authentication.
 - Do not deploy to the cloud.
 - Do not redesign the UI.
-- Do not introduce a database.
+- Do not connect new financial workflows to real application-database records until PostgreSQL migration/recovery, access controls, and shared-operation requirements are verified and approved. Synthetic local persistence is approved as described above.
 - Do not replace Google Sheets as the destination.
 - Do not rewrite the app into another framework.
 
@@ -87,7 +98,7 @@ These may become approved later, but they are not current implementation require
 
 ## Approved Future Budgeting Requirements
 
-These requirements are approved inputs for future budgeting architecture design. They must not interrupt the current characterization-test work, and they should not be implemented until the budgeting/refactoring architecture has been revisited and approved.
+These requirements remain inputs for incremental financial-system development. The shared-dataset architecture and initial income-calendar persistence are approved; later financial services require separately scoped milestones. The broader product vision also includes income reconciliation, bill/payment lifecycles, transfers, balances, pending activity, category budgets, month-end closing, manual splits, rule management, and nightly check-in; this first persistence slice does not implement those services.
 
 ### Pay Calendar And Pay Schedule
 
