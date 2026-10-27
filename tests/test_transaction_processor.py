@@ -16,6 +16,24 @@ from transaction_processor import (
 
 
 class ProcessTransactionsTests(unittest.TestCase):
+    def test_roundup_imports_match_savings_summary_category(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            source = Path(temporary_directory) / "Checking-2695.csv"
+            with source.open("w", newline="", encoding="utf-8") as source_file:
+                writer = csv.writer(source_file)
+                writer.writerow(["Date", "Description", "Amount"])
+                writer.writerow(["2026-09-27", "Roundup *DD *DOORDASH", "-0.26"])
+                writer.writerow(["2026-09-27", "Roundup EXAMPLE STORE", "-0.50"])
+                writer.writerow(["2026-09-27", "EXAMPLE STORE", "-10.00"])
+
+            transactions = process_transactions(str(source), "Example Checking", "TEST")
+
+        self.assertEqual(
+            [item["budget_name"] for item in transactions],
+            ["Round up Transfer", "Round up Transfer", "MISC"],
+        )
+        self.assertEqual([item["amount"] for item in transactions], [0.26, 0.5, 10.0])
+
     def test_detects_account_from_filename(self):
         self.assertEqual(
             detect_account_from_filename("SoFi Checking•2695.csv"),

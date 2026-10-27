@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Categorized descriptions beginning with `Roundup ` as `Round up Transfer`, matching the savings-summary label instead of falling back to `MISC`.
 - Fixed upload read-quota exhaustion by finding the destination row from already-fetched worksheet values, eliminating per-cell reads and skipping the search for duplicate-only uploads.
 - Added a confirmed TEST-only reset for imported constant values in H/I/K/O/P rows 69–383, preserving formulas, formatting, and other workbook content. Added boundary, live-month rejection, and one-use confirmation tests.
 - Extracted missing-credentials and general upload-error pages into templates, preserving messages, return links, HTTP status codes, and legacy escaping behavior.

@@ -17,6 +17,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 
 ### Amount And Month Conventions
 
+- Descriptions beginning with `Roundup ` map to the workbook category `Round up Transfer`, whose savings-summary entry is at row 44 in the current template. The existing summary formula totals matching imported amounts; the app does not write directly into that summary cell. Existing imported categories are not automatically updated when rules change.
 - Imported amounts intentionally use positive magnitudes. Category-based budget treatment determines whether a transaction contributes as income or expense; preserving the source bank's amount sign is not the current import contract.
 - The report's amount totals sum transaction magnitudes and may combine income and expenses. They are not spending-only totals or signed net cash flow.
 - The selected worksheet is the import destination, not a date filter. The user normally exports the current month's transactions before uploading. A cross-month export is imported in full to the selected worksheet; the past-30-days export used for TEST was intentional.

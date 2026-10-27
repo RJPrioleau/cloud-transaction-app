@@ -16,6 +16,7 @@ DESTINATION_FILE = "ANNUAL-BUDGET 2026 (MAR - Present).xlsx"
 
 # Add more rules here whenever you want
 CATEGORY_RULES = [
+    ("Roundup ", "Round up Transfer"),
     ("ZAXBY'S", "Eating out"),
     ("MCDONALD'S", "Eating out"),
     ("Bojangles", "Eating out"),
