@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Bill/Subscription classification to obligation entry and separate sections with shared funding-deadline behavior. Migration preserves existing records as Bills; added classification validation, grouping/order, migration-preservation, and backup recovery coverage. No recurring generation is introduced.
+
 - Added manual individual bill-planning records, with exact-cent amounts, due dates, default three-calendar-day funding buffers and per-occurrence overrides. Lists obligations by funding deadline; records do not reserve money or initiate payments. Added migration, validation, persistence, income-preservation, and backup recovery coverage. Real local bill planning approved.
 
 - Made the projected-income horizon selectable from 1–365 days, defaulting to 90. Dates, known totals, and unknown-amount notices update together; invalid input displays an error without a misleading total. Selection is preserved in the URL without changing financial records.

@@ -14,10 +14,12 @@ class BillOccurrence(Base):
         CheckConstraint("length(trim(name)) > 0", name="ck_bills_name_not_blank"),
         CheckConstraint("amount_cents >= 0", name="ck_bills_amount_nonnegative"),
         CheckConstraint("funding_buffer_days >= 0", name="ck_bills_buffer_nonnegative"),
+        CheckConstraint("kind IN ('bill', 'subscription')", name="ck_bills_kind"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(16), default="bill", server_default="bill")
     amount_cents: Mapped[int] = mapped_column(BigInteger)
     due_date: Mapped[date] = mapped_column(Date)
     funding_buffer_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")

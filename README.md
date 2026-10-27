@@ -85,7 +85,9 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Local Planning Features
 
-## Manual Bill Planning
+## Manual Bills and Subscriptions
+
+Select **Bill** or **Subscription** when adding an occurrence. Both types share the same amounts and funding rules, but appear in separate sections, each ordered by funding deadline. Existing records become Bills under migration `0004_bill_subscription_kind`; no existing amounts, dates, IDs, or buffers are changed. The classification is not a recurring schedule and does not create future occurrences. Reclassification/editing remains deferred. Downgrading this migration preserves obligations but removes their type labels.
 
 Open **Bill planning** from the upload page or income forecast, or visit `/bills`. Add one bill name, dollar amount, and due date. An optional funding buffer defaults to **three calendar days before the due date**; zero means the due date itself. Bills are listed by earliest funding deadline, including past dates. Amounts use integer cents; blank amounts are rejected and explicit zero is permitted. No weekend/holiday adjustments are made.
 

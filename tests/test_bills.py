@@ -111,3 +111,36 @@ class BillTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 with session_scope(self.engine) as db:
                     create_bill(db, "Example", amount, date(2027, 1, 2), buffer)
+
+    def test_subscription_classification_persists_and_sections_are_sorted_independently(self):
+        self.assertEqual(self.post(name="Rent", kind="bill").status_code, 303)
+        self.assertEqual(self.post(name="Music", kind="subscription", due_date="2027-01-10").status_code, 303)
+        self.assertEqual(self.post(name="Streaming", kind="subscription", due_date="2027-01-05",
+                                   funding_buffer_days="0").status_code, 303)
+        response = self.make_app().test_client().get("/bills")
+        html = response.get_data(as_text=True)
+        bills_section, subscriptions = html.split('<h2 id="subscription-heading">Subscriptions</h2>')
+        self.assertIn("Rent", bills_section)
+        self.assertNotIn("Music", bills_section)
+        self.assertNotIn("Rent", subscriptions)
+        self.assertLess(subscriptions.index("Streaming"), subscriptions.index("Music"))
+        with session_scope(self.engine) as db:
+            records = {r.name: r for r in list_bills(db)}
+            self.assertEqual(records["Rent"].kind, "bill")
+            self.assertEqual(records["Music"].kind, "subscription")
+            self.assertEqual(records["Music"].funding_deadline, date(2027, 1, 7))
+            self.assertEqual(records["Streaming"].funding_deadline, date(2027, 1, 5))
+
+    def test_invalid_kind_rejected_and_valid_selection_retained_on_other_error(self):
+        for kind in ("", "other", "Subscription"):
+            self.assertEqual(self.post(kind=kind).status_code, 400)
+        response = self.post(kind="subscription", amount="bad")
+        self.assertIn(b'value="subscription" selected', response.data)
+        with session_scope(self.engine) as db:
+            self.assertEqual(list_bills(db), [])
+        with self.assertRaises(ValueError):
+            with session_scope(self.engine) as db:
+                create_bill(db, "Example", 100, date(2027, 1, 1), kind="other")
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as conn:
+                conn.execute(text("INSERT INTO bill_occurrences (id,name,amount_cents,due_date,created_at,kind) VALUES ('bad','Example',100,'2027-01-01','2026-01-01','other')"))

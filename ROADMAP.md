@@ -4,6 +4,8 @@ This roadmap records approved project direction and implementation milestones. T
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+- [x] Add approved Bill/Subscription classification and separate deadline-sorted sections while preserving existing obligations as Bills. Recurrence and editing remain deferred.
+
 - [x] Approved individual manual bill occurrences: exact-cent amounts, due dates, default/override funding buffers, deadline-sorted listing, persistence/migration/recovery tests. Real local bill-planning data approved; recurring schedules, reservations, and payments remain separate future slices.
 
 - [x] Add approved 1–365 day forecast selection, defaulting to 90, with validated URL input and no database changes.

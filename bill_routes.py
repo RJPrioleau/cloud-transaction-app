@@ -36,7 +36,8 @@ def index():
                     amount = parse_net_cents(request.form.get("amount", ""))
                     if amount is None:
                         raise ValueError("Bill amount is required.")
-                    create_bill(db, request.form.get("name", ""), amount, due, buffer_days)
+                    create_bill(db, request.form.get("name", ""), amount, due, buffer_days,
+                                kind=request.form.get("kind", "bill"))
                 else:
                     records = list_bills(db)
             if request.method == "POST":

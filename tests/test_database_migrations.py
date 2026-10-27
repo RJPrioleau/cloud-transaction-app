@@ -126,7 +126,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 )
                 source.expected_net_cents = 123456
                 payday.expected_net_override_cents = 125001
-                bill = create_bill(session, "Synthetic bill", 12345, date(2027, 1, 2))
+                bill = create_bill(session, "Synthetic bill", 12345, date(2027, 1, 2), kind="subscription")
             backup_sqlite_database(engine, backup_path)
         finally:
             engine.dispose()
@@ -144,6 +144,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 saved = list_official_pay_dates(session, source.id)[0]
                 self.assertEqual(saved.expected_net_override_cents, 125001)
                 restored_bill = list_bills(session)[0]
+                self.assertEqual(restored_bill.kind, "subscription")
                 self.assertEqual((restored_bill.id, restored_bill.name, restored_bill.amount_cents,
                                   restored_bill.due_date, restored_bill.funding_deadline),
                                  (bill.id, "Synthetic bill", 12345, date(2027, 1, 2), date(2026, 12, 30)))
@@ -156,7 +157,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with restored.connect() as connection:
                 self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
-                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0003_bill_occurrences")
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0004_bill_subscription_kind")
         finally:
             restored.dispose()
 
@@ -195,6 +196,27 @@ class DatabaseMigrationTests(unittest.TestCase):
             command.upgrade(self.config, "head")
             with session_scope(engine) as db:
                 self.assertEqual(list_bills(db)[0].id, bill.id)
+        finally:
+            engine.dispose()
+
+    def test_kind_migration_preserves_old_bills_and_defaults_their_classification(self):
+        command.upgrade(self.config, "0003_bill_occurrences")
+        engine = create_database_engine(self.url)
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("INSERT INTO bill_occurrences (id,name,amount_cents,due_date,funding_buffer_days,created_at) VALUES ('old','Existing bill',12345,'2027-01-02',5,'2026-01-01')"))
+            old_columns = "id,name,amount_cents,due_date,funding_buffer_days,created_at"
+            with engine.connect() as conn:
+                before = conn.execute(text('SELECT '+old_columns+' FROM bill_occurrences')).all()
+            command.upgrade(self.config, "head")
+            command.upgrade(self.config, "head")
+            with engine.connect() as conn:
+                self.assertEqual(conn.execute(text('SELECT '+old_columns+' FROM bill_occurrences')).all(), before)
+                self.assertEqual(conn.scalar(text('SELECT kind FROM bill_occurrences')), 'bill')
+            command.downgrade(self.config, "0003_bill_occurrences")
+            with engine.connect() as conn:
+                self.assertEqual(conn.execute(text('SELECT '+old_columns+' FROM bill_occurrences')).all(), before)
+            command.upgrade(self.config, "head")
         finally:
             engine.dispose()
 
