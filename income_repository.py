@@ -1,9 +1,33 @@
 """Create/read operations; the caller owns the transaction via session_scope."""
 from datetime import date, datetime
+from decimal import Decimal
+import re
 
 from sqlalchemy import select
 
 from income_models import IncomeSource, OfficialPayDate
+
+
+def parse_net_cents(value):
+    """Blank means unknown/inherit; zero is an explicit zero estimate."""
+    value = value.strip()
+    if not value:
+        return None
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,2})?", value) or len(value) > 22:
+        raise ValueError("Enter a nonnegative dollar amount with at most two decimal places, without commas.")
+    cents = int(Decimal(value) * 100)
+    if cents > 9223372036854775807:
+        raise ValueError("Expected pay amount is too large.")
+    return cents
+
+
+def net_amount_text(cents):
+    return "" if cents is None else f"{cents // 100}.{cents % 100:02d}"
+
+
+def expected_net_cents(source, payday):
+    return (payday.expected_net_override_cents if payday.expected_net_override_cents is not None
+            else source.expected_net_cents)
 
 
 def create_income_source(session, name):
@@ -51,4 +75,3 @@ def create_official_pay_date(
 def list_official_pay_dates(session, income_source_id):
     query = select(OfficialPayDate).where(OfficialPayDate.income_source_id == income_source_id)
     return list(session.scalars(query.order_by(OfficialPayDate.official_pay_date, OfficialPayDate.id)))
-

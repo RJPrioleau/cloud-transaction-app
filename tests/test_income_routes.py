@@ -11,6 +11,7 @@ from database import PROJECT_ROOT, create_database_engine, session_scope
 from income_repository import list_income_sources, list_official_pay_dates
 from income_routes import income
 from income_repository import create_official_pay_date
+from income_repository import parse_net_cents, expected_net_cents, net_amount_text
 from sqlalchemy.exc import SQLAlchemyError
 
 
@@ -163,3 +164,47 @@ class IncomeRouteTests(unittest.TestCase):
                                      pay_dates=["2026-11-06", "2026-11-13"])
         self.assertEqual(response.status_code, 503)
         self.assertEqual(self.saved_dates(location), [])
+
+    def test_expected_net_pay_defaults_overrides_clear_and_persist(self):
+        location = self.source()
+        self.post(location + "/paydates", year="2026", pay_dates=["2026-11-06", "2026-11-13"])
+        payday = self.saved_dates(location)[0]
+        self.assertEqual(self.post(location, action="set_default", expected_net="2925.91").status_code, 303)
+        self.assertEqual(self.post(location, action="set_override", payday_id=payday.id, expected_net="3000.01").status_code, 303)
+        html = self.make_app().test_client().get(location).get_data(as_text=True)
+        self.assertIn("$2925.91 (default)", html)
+        self.assertIn("$3000.01 (override)", html)
+        self.post(location, action="set_default", expected_net="2800.00")
+        html = self.client.get(location).get_data(as_text=True)
+        self.assertIn("$3000.01 (override)", html)
+        self.assertIn("$2800.00 (default)", html)
+        self.post(location, action="set_override", payday_id=payday.id, expected_net="0.00")
+        self.assertIn(b"$0.00 (override)", self.client.get(location).data)
+        self.post(location, action="set_override", payday_id=payday.id, expected_net="")
+        self.assertEqual(self.client.get(location).data.count(b"$2800.00 (default)"), 2)
+        self.post(location, action="set_default", expected_net="")
+        self.assertIn(b"Not set (default)", self.client.get(location).data)
+        self.assertTrue(all(r.review_status == "draft" for r in self.saved_dates(location)))
+
+    def test_invalid_amount_does_not_change_default_and_other_source_cannot_edit_override(self):
+        location = self.source()
+        self.post(location, official_pay_date="2026-11-06")
+        payday = self.saved_dates(location)[0]
+        self.post(location, action="set_default", expected_net="2925.91")
+        for value in ("-1", "NaN", "Infinity", "1e3", "1.001", "2,925.91", "abc", "99999999999999999999"):
+            self.assertEqual(self.post(location, action="set_default", expected_net=value).status_code, 400)
+            self.assertIn(b"$2925.91 (default)", self.client.get(location).data)
+        other = self.source("Other")
+        self.assertEqual(self.post(other, action="set_override", payday_id=payday.id, expected_net="1").status_code, 404)
+        self.assertIsNone(self.saved_dates(location)[0].expected_net_override_cents)
+        self.assertEqual(self.client.post(location, data={"action": "set_default", "expected_net": "1"}).status_code, 400)
+
+    def test_integer_cents_are_exact_and_unknown_differs_from_zero(self):
+        self.assertEqual(parse_net_cents("2925.91"), 292591)
+        self.assertEqual(net_amount_text(292591), "2925.91")
+        self.assertEqual(parse_net_cents("0.01"), 1)
+        self.assertIsNone(parse_net_cents(""))
+        from types import SimpleNamespace
+        source = SimpleNamespace(expected_net_cents=292591)
+        self.assertEqual(expected_net_cents(source, SimpleNamespace(expected_net_override_cents=0)), 0)
+        self.assertEqual(expected_net_cents(source, SimpleNamespace(expected_net_override_cents=None)), 292591)

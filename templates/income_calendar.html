@@ -14,7 +14,7 @@
 <body>
 <nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.calendar') }}">Income sources</a></nav>
 <h1>Draft Income Calendar</h1>
-<p>Synthetic development data only. Draft dates describe expected paydays, not received deposits or available funds.</p>
+<p>Local planning prototype. Draft dates and expected net pay are projections, not received deposits or available funds. Local records do not sync between computers.</p>
 {% if unavailable %}
 <p role="alert">Income calendar database unavailable. Complete database setup with <code>python -m alembic upgrade head</code> from the project folder, or check your database connection. The upload page remains available.</p>
 {% else %}
@@ -27,14 +27,31 @@
 </ul>
 {% if source %}
 <h2>{{ source.name }} — Draft official pay dates</h2>
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<input type="hidden" name="action" value="set_default">
+<label>Default expected take-home pay ($)
+<input name="expected_net" inputmode="decimal" value="{{ values.get('expected_net', '') if values.get('action') == 'set_default' else net_amount_text(source.expected_net_cents) }}" placeholder="Not set"></label>
+<p>Applies to all draft paydays without an override, including past dates. Blank means unknown. Use dollars without commas.</p>
+<button type="submit">Save expected pay</button>
+</form>
 <p><a href="{{ url_for('income.select_paydates', source_id=source.id) }}">Select pay dates for {{ source.name }} for the year</a></p>
 <table>
-<thead><tr><th>Official payday</th><th>Pay-period start</th><th>Pay-period end</th><th>Reference</th><th>Status</th></tr></thead>
+<thead><tr><th>Official payday</th><th>Pay-period start</th><th>Pay-period end</th><th>Reference</th><th>Status</th><th>Expected net pay</th><th>Payday override ($)</th></tr></thead>
 <tbody>
 {% for item in dates %}
-<tr><td>{{ item.official_pay_date }}</td><td>{{ item.pay_period_start or '' }}</td><td>{{ item.pay_period_end or '' }}</td><td>{{ item.source_reference or '' }}</td><td>Draft</td></tr>
-{% else %}<tr><td colspan="5">No draft dates yet.</td></tr>{% endfor %}
+<tr><td>{{ item.official_pay_date }}</td><td>{{ item.pay_period_start or '' }}</td><td>{{ item.pay_period_end or '' }}</td><td>{{ item.source_reference or '' }}</td><td>Draft</td>
+<td>{% set amount = expected_net_cents(source, item) %}{{ '$' + net_amount_text(amount) if amount is not none else 'Not set' }} ({{ 'override' if item.expected_net_override_cents is not none else 'default' }})</td>
+<td><form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<input type="hidden" name="action" value="set_override">
+<input type="hidden" name="payday_id" value="{{ item.id }}">
+<input aria-label="Expected net override for {{ item.official_pay_date }}" name="expected_net" inputmode="decimal" placeholder="Use default" value="{{ values.get('expected_net', '') if values.get('action') == 'set_override' and values.get('payday_id') == item.id else net_amount_text(item.expected_net_override_cents) }}">
+<button type="submit">Save override</button>
+</form></td></tr>
+{% else %}<tr><td colspan="7">No draft dates yet.</td></tr>{% endfor %}
 </tbody></table>
+<p>A blank payday override uses the source default; 0.00 is an explicit zero estimate.</p>
 <h2>Add draft official pay date</h2>
 {% else %}<h2>Add income source</h2>{% endif %}
 <form method="post">

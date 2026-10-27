@@ -1,12 +1,14 @@
 # Roadmap
 
-This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task is the first synthetic-data income-calendar persistence slice, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds expected net pay defaults and payday overrides to the local calendar, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
 The approved yearly-selection slice adds a source/year-labeled calendar, batch Draft creation, and skipping already-saved dates. Manual selection replaces PDF importing for the current workflow. Visual browser acceptance remains pending.
 
-Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. SQLite is for synthetic local development only. Deployment, purchases, and existing-data migration are not approved.
+Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. The user approved real local pay dates and expected-net projections as a limited prototype exception to synthetic-only development. Local records do not synchronize. Deployment, purchases, and existing bank-data migration are not approved.
+
+- [x] Add nullable expected-net source defaults and per-payday overrides in integer cents, editable through the source page, with migration preservation and synthetic recovery coverage.
 
 - [x] Define income sources and draft official pay dates with stable IDs and source relationships.
 - [x] Add explicit database sessions and an initial Alembic migration; importing modules creates no database.

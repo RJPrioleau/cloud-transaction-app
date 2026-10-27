@@ -85,6 +85,10 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Income Calendar Persistence - Development Only
 
+The user has approved real pay dates and expected net amounts in this local planning prototype. This is a limited exception to the original synthetic-only restriction; bank-transaction migration, confirmed funding, deployment, and shared operation remain unapproved. The local SQLite records do not synchronize to another computer. Tests still use synthetic data only.
+
+On a source page, **Default expected take-home pay** sets the projected net amount for every Draft date without an override, including past dates. Set a **Payday override** to change only that occurrence; clearing it restores the default. Blank default means unknown; zero is an explicit zero estimate. Enter dollars without commas, with at most two decimal places. Amounts are stored as integer cents and never count as deposits, balances, or reserved funds. These are editable projections, not immutable historical forecasts; revision history and effective-dated defaults are deferred. No deduction calculation or forecast total is introduced here.
+
 For quick yearly entry, select an income source and click **Select pay dates for [source] for the year**. Choose a year, click the official paydays while viewing your employer calendar alongside the app, and click **Save pay dates**. Blue dates are selected; green dates are already saved. Each batch saves together as Draft and skips dates already stored for that source. This does not remove saved dates or change their optional details. The individual-date form remains available for pay-period details. PDF importing is deferred in favor of manual yearly selection; no PDF dependency is required.
 
 The database provides create/read functions and a browser interface for income sources and **draft** official pay dates. It does not change transaction imports, Google Sheets, account balances, or funding decisions.
@@ -101,9 +105,9 @@ python -m alembic current
 
 SQLAlchemy defines records and database operations; Alembic records and applies versioned schema changes. `upgrade head` creates the two income-calendar tables and records the migration revision. Running it again preserves existing rows. Importing the Python modules does not create a database or tables.
 
-By default, the database is `instance/development.sqlite3`, resolved from the repository root rather than the terminal's current folder. The ignored `instance/` directory is for **synthetic development data only**. `DATABASE_URL` can select another development database; do not point development commands at real financial records. PostgreSQL is the approved shared-deployment target, but no PostgreSQL driver, service, or deployment is introduced in this slice.
+By default, the database is `instance/development.sqlite3`, resolved from the repository root rather than the terminal's current folder. The ignored `instance/` directory may hold the explicitly approved local pay-calendar and expected-net planning records. `DATABASE_URL` can select another development database; check the target before migration and back up existing records. PostgreSQL remains the shared-deployment target; no PostgreSQL service or deployment is introduced here.
 
-The repository functions in `income_repository.py` accept a SQLAlchemy session. Use `database.session_scope(engine)` around an operation: it commits all successful changes together and rolls everything back on failure. Paydays and optional pay-period boundaries are Python `date` values. Created timestamps are stored as UTC without an offset for consistent SQLite storage. Newly created pay dates can only be drafts; they do not represent received deposits. There are no edit, delete, scheduling, or confirmation operations yet. Source names and source/date pairs are not assumed unique.
+The repository functions in `income_repository.py` accept a SQLAlchemy session. Use `database.session_scope(engine)` around an operation: it commits all successful changes together and rolls everything back on failure. Paydays and optional pay-period boundaries are Python `date` values. Created timestamps are stored as UTC without an offset for consistent SQLite storage. Newly created pay dates can only be drafts; they do not represent received deposits. Expected amounts can be edited; editing other record details, deletion, recurring scheduling, and confirmation remain deferred. Source names and source/date pairs are not assumed unique.
 
 Run the focused acceptance tests:
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added expected take-home pay defaults and per-payday overrides, stored as integer cents with nonnegative constraints. Blank amounts mean unknown/inherit; zero is explicit. Added amount forms, projected displays, migration preservation, validation, and backup recovery tests. User approved real local pay-calendar/expected-net planning data; shared deployment and other financial workflows remain gated.
+
 - Added a yearly payday selector labeled with the income source and year. Users click dates and save them together as Draft; saved dates are marked and skipped on repeated submission. Includes leap-year, validation, persistence, source-isolation, and batch-rollback coverage. PDF calendar importing is deferred.
 
 - Added the synthetic-data Draft Income Calendar interface: create/list sources, add/view chronological draft dates, optional periods/references, validation, session form tokens, and redirect-after-save behavior. Database access occurs only on calendar requests; importer behavior is preserved.

@@ -7,10 +7,11 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import create_database_engine, session_scope
-from income_models import IncomeSource
+from income_models import IncomeSource, OfficialPayDate
 from income_repository import (
     create_income_source, create_official_pay_date,
     list_income_sources, list_official_pay_dates,
+    parse_net_cents, net_amount_text, expected_net_cents,
 )
 
 income = Blueprint("income", __name__)
@@ -108,11 +109,22 @@ def calendar(source_id=None):
                         created = create_income_source(db, request.form.get("name", ""))
                         destination = created.id
                     else:
-                        create_official_pay_date(
-                            db, source.id, calendar_date("official_pay_date", required=True),
-                            calendar_date("pay_period_start"), calendar_date("pay_period_end"),
-                            request.form.get("source_reference"),
-                        )
+                        action = request.form.get("action", "add_date")
+                        if action == "set_default":
+                            source.expected_net_cents = parse_net_cents(request.form.get("expected_net", ""))
+                        elif action == "set_override":
+                            payday = db.get(OfficialPayDate, request.form.get("payday_id", ""))
+                            if payday is None or payday.income_source_id != source.id:
+                                abort(404)
+                            payday.expected_net_override_cents = parse_net_cents(request.form.get("expected_net", ""))
+                        elif action == "add_date":
+                            create_official_pay_date(
+                                db, source.id, calendar_date("official_pay_date", required=True),
+                                calendar_date("pay_period_start"), calendar_date("pay_period_end"),
+                                request.form.get("source_reference"),
+                            )
+                        else:
+                            raise ValueError("Choose a valid income action.")
                         destination = source.id
                 else:
                     sources = list_income_sources(db)
@@ -128,6 +140,7 @@ def calendar(source_id=None):
         return render_template(
             "income_calendar.html", sources=sources, source=source, dates=dates,
             token=token, error=error, values=request.form,
+            net_amount_text=net_amount_text, expected_net_cents=expected_net_cents,
         ), status
     except SQLAlchemyError:
         current_app.logger.exception("Income calendar database unavailable")

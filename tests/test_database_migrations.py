@@ -54,7 +54,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             self.assertEqual(
                 {c["name"] for c in inspect(engine).get_columns("official_pay_dates")},
                 {"id", "income_source_id", "official_pay_date", "pay_period_start", "pay_period_end",
-                 "source_reference", "review_status", "created_at"},
+                 "source_reference", "review_status", "created_at", "expected_net_override_cents"},
             )
             with session_scope(engine) as session:
                 source = create_income_source(session, "Example Employer")
@@ -87,6 +87,31 @@ class DatabaseMigrationTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             command.check(self.config)
 
+    def test_amount_migration_preserves_existing_calendar_and_enforces_nonnegative(self):
+        command.upgrade(self.config, "0001_income_calendar")
+        engine = create_database_engine(self.url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(text("INSERT INTO income_sources (id,name,created_at) VALUES ('s','Example','2026-01-01')"))
+                connection.execute(text("INSERT INTO official_pay_dates (id,income_source_id,official_pay_date,created_at,review_status) VALUES ('p','s','2026-11-06','2026-01-01','draft')"))
+            command.upgrade(self.config, "head")
+            with engine.connect() as connection:
+                self.assertEqual(connection.execute(text("SELECT id, expected_net_cents FROM income_sources")).one(), ('s', None))
+                self.assertEqual(connection.execute(text("SELECT id, income_source_id, official_pay_date, expected_net_override_cents FROM official_pay_dates")).one(), ('p', 's', '2026-11-06', None))
+            from sqlalchemy.exc import IntegrityError
+            for statement in ("UPDATE income_sources SET expected_net_cents=-1", "UPDATE official_pay_dates SET expected_net_override_cents=-1"):
+                with self.assertRaises(IntegrityError):
+                    with engine.begin() as connection:
+                        connection.execute(text(statement))
+            command.upgrade(self.config, "head")
+            # On a synthetic populated database, removing only amount columns preserves identity.
+            command.downgrade(self.config, "0001_income_calendar")
+            with engine.connect() as connection:
+                self.assertEqual(connection.scalar(text("SELECT id FROM official_pay_dates")), 'p')
+            command.upgrade(self.config, "head")
+        finally:
+            engine.dispose()
+
     def test_backup_restores_records_relationships_and_migration_version_after_source_loss(self):
         command.upgrade(self.config, "head")
         engine = create_database_engine(self.url)
@@ -98,6 +123,8 @@ class DatabaseMigrationTests(unittest.TestCase):
                     session, source.id, date(2027, 1, 8),
                     date(2026, 12, 21), date(2027, 1, 3), "Synthetic official calendar",
                 )
+                source.expected_net_cents = 123456
+                payday.expected_net_override_cents = 125001
             backup_sqlite_database(engine, backup_path)
         finally:
             engine.dispose()
@@ -111,7 +138,9 @@ class DatabaseMigrationTests(unittest.TestCase):
         try:
             with session_scope(restored) as session:
                 self.assertEqual(list_income_sources(session)[0].id, source.id)
+                self.assertEqual(list_income_sources(session)[0].expected_net_cents, 123456)
                 saved = list_official_pay_dates(session, source.id)[0]
+                self.assertEqual(saved.expected_net_override_cents, 125001)
                 self.assertEqual(
                     (saved.id, saved.income_source_id, saved.official_pay_date, saved.pay_period_start,
                      saved.pay_period_end, saved.source_reference, saved.review_status, saved.created_at),
@@ -121,7 +150,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with restored.connect() as connection:
                 self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
-                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0001_income_calendar")
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0002_expected_net_pay")
         finally:
             restored.dispose()
 
