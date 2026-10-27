@@ -46,17 +46,28 @@ python -m venv .venv
 python -m pip install -r .\requirements.txt
 ```
 
-Run the Flask development server:
+Start the local app from PowerShell 7 (activation is not required):
 
 ```powershell
-python app.py
+.\start_app.ps1
 ```
 
-Open the app:
+After editing Python code or page templates, restart it:
 
-```text
-http://127.0.0.1:5000
+```powershell
+.\start_app.ps1 -Restart
 ```
+
+Check the running version or stop the managed server:
+
+```powershell
+.\start_app.ps1 -Status
+.\start_app.ps1 -Stop
+```
+
+The launcher prints the URL, process ID, and source fingerprint only after the app responds with the expected version. Open `http://127.0.0.1:5000`. Starting twice reuses the current server; stale code produces a restart instruction. Restart and stop affect only this repository's `local_server.py` processes. An unrelated or manually started server on port 5000 is left untouched and must be stopped separately. Local server output goes to ignored `logs/local-server.log`.
+
+Double-clicking `start_app.bat` runs the same restart workflow using `pwsh.exe` (PowerShell 7 must be installed and available on PATH). If PowerShell blocks the script, inspect your execution policy rather than bypassing it automatically. `python app.py` remains available for manual development/deployment, but those manually started processes are not managed by the launcher; stop them before switching to the managed workflow.
 
 Run the characterization tests:
 

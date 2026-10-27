@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a managed local start/restart/status/stop workflow with an exclusive localhost listener and startup source fingerprint, avoiding stale overlapping app processes. Updated the batch launcher to use it.
 - Categorized descriptions beginning with `Roundup ` as `Round up Transfer`, matching the savings-summary label instead of falling back to `MISC`.
 - Fixed upload read-quota exhaustion by finding the destination row from already-fetched worksheet values, eliminating per-cell reads and skipping the search for duplicate-only uploads.
 - Added a confirmed TEST-only reset for imported constant values in H/I/K/O/P rows 69–383, preserving formulas, formatting, and other workbook content. Added boundary, live-month rejection, and one-use confirmation tests.
