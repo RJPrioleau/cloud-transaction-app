@@ -30,9 +30,11 @@ def expected_net_cents(source, payday):
             else source.expected_net_cents)
 
 
-def income_forecast(session, start):
-    """Project saved occurrences for today plus the following 89 calendar days."""
-    end = start + timedelta(days=90)
+def income_forecast(session, start, days=90):
+    """Project saved occurrences for an inclusive 1–365 day window."""
+    if type(days) is not int or not 1 <= days <= 365:
+        raise ValueError("Choose a whole number of days from 1 to 365.")
+    end = start + timedelta(days=days)
     query = (
         select(IncomeSource, OfficialPayDate)
         .join(OfficialPayDate, OfficialPayDate.income_source_id == IncomeSource.id)
@@ -52,7 +54,7 @@ def income_forecast(session, start):
         else:
             total += amount
     return {"start": start, "last_day": end - timedelta(days=1), "rows": rows,
-            "total": total, "unknown": unknown}
+            "total": total, "unknown": unknown, "days": days}
 
 
 def create_income_source(session, name):

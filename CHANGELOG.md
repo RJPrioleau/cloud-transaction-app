@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Made the projected-income horizon selectable from 1–365 days, defaulting to 90. Dates, known totals, and unknown-amount notices update together; invalid input displays an error without a misleading total. Selection is preserved in the URL without changing financial records.
+
 - Added a read-only 90-day projected-income page across saved income sources. Uses per-payday overrides before defaults, lists dates chronologically, totals known amounts in integer cents, and flags missing amounts. No database migration or actual-income/balance changes.
 
 - Added expected take-home pay defaults and per-payday overrides, stored as integer cents with nonnegative constraints. Blank amounts mean unknown/inherit; zero is explicit. Added amount forms, projected displays, migration preservation, validation, and backup recovery tests. User approved real local pay-calendar/expected-net planning data; shared deployment and other financial workflows remain gated.

@@ -4,6 +4,8 @@ This roadmap records approved project direction and implementation milestones. T
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+- [x] Add approved 1–365 day forecast selection, defaulting to 90, with validated URL input and no database changes.
+
 - [x] Add the approved read-only 90-day projected-income view across sources, with exact-cent known totals and explicit unknown amounts. No database migration or received-income behavior.
 
 The approved yearly-selection slice adds a source/year-labeled calendar, batch Draft creation, and skipping already-saved dates. Manual selection replaces PDF importing for the current workflow. Visual browser acceptance remains pending.

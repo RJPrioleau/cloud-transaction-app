@@ -267,3 +267,42 @@ class IncomeRouteTests(unittest.TestCase):
         with self.assertLogs(self.app.logger, level="ERROR"):
             response = self.client.get("/income/forecast")
         self.assertEqual(response.status_code, 503)
+
+    def test_horizon_updates_dates_totals_and_unknown_counts_without_changing_records(self):
+        start = date(2027, 12, 31)
+        location = self.source("Employer")
+        self.post(location, action="set_default", expected_net="100.01")
+        for offset in (0, 1, 89, 90, 364, 365):
+            self.post(location, official_pay_date=str(start + timedelta(days=offset)))
+        unknown = self.source("Unknown")
+        self.post(unknown, official_pay_date=str(start + timedelta(days=90)))
+        original_ids = [r.id for r in self.saved_dates(location)]
+        with patch("income_routes.date") as clock_date:
+            clock_date.today.return_value = start
+            for days, count, unknown_count in ((1, 1, 0), (90, 3, 0), (365, 5, 1)):
+                response = self.client.get(f"/income/forecast?days={days}")
+                html = response.get_data(as_text=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(f"Next {days} Days", html)
+                self.assertIn(f"{start} through {start + timedelta(days=days-1)}", html)
+                self.assertIn(f"${net_amount_text(count * 10001)}", html)
+                self.assertEqual("Incomplete estimate:" in html, bool(unknown_count))
+            default = self.client.get("/income/forecast")
+            self.assertIn(b"Next 90 Days", default.data)
+        self.assertEqual([r.id for r in self.saved_dates(location)], original_ids)
+
+    def test_invalid_horizons_show_actionable_error_without_a_misleading_total(self):
+        for days in ("", "0", "-1", "366", "abc", "1.5", "1e2"):
+            response = self.client.get("/income/forecast", query_string={"days": days})
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(b"Choose a whole number of days from 1 to 365.", response.data)
+            self.assertNotIn(b"Known expected net total:", response.data)
+            self.assertIn(b"Update forecast", response.data)
+        engine = create_database_engine(self.url)
+        try:
+            with session_scope(engine) as db:
+                for days in (True, None, "90", 0, 366, 1.5):
+                    with self.assertRaises(ValueError):
+                        income_forecast(db, date(2026, 1, 1), days)
+        finally:
+            engine.dispose()

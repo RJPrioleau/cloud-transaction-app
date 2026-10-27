@@ -23,11 +23,21 @@ def forecast():
     # Reserve the static path so POST cannot match /income/<source_id>.
     if request.method == "POST":
         abort(405)
+    raw_days = request.args.get("days", "90")
+    try:
+        days = int(raw_days)
+        if not 1 <= days <= 365:
+            raise ValueError
+    except ValueError:
+        return render_template(
+            "income_forecast.html", projection=None, days=raw_days,
+            error="Choose a whole number of days from 1 to 365.",
+        ), 400
     engine = create_database_engine(current_app.config.get("DATABASE_URL"))
     try:
         with session_scope(engine) as db:
-            projection = income_forecast(db, date.today())
-        return render_template("income_forecast.html", projection=projection, net_amount_text=net_amount_text)
+            projection = income_forecast(db, date.today(), days)
+        return render_template("income_forecast.html", projection=projection, days=days, net_amount_text=net_amount_text)
     except SQLAlchemyError:
         current_app.logger.exception("Income forecast database unavailable")
         return render_template("income_calendar.html", unavailable=True), 503

@@ -14,7 +14,7 @@
 <body>
 <nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.calendar') }}">Income sources</a></nav>
 <h1>Draft Income Calendar</h1>
-<p><a href="{{ url_for('income.forecast') }}">View 90-day projected income</a></p>
+<p><a href="{{ url_for('income.forecast') }}">View projected income forecast</a></p>
 <p>Local planning prototype. Draft dates and expected net pay are projections, not received deposits or available funds. Local records do not sync between computers.</p>
 {% if unavailable %}
 <p role="alert">Income calendar database unavailable. Complete database setup with <code>python -m alembic upgrade head</code> from the project folder, or check your database connection. The upload page remains available.</p>
