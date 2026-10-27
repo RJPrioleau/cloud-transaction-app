@@ -83,11 +83,19 @@ For a quick syntax-only check:
 python -m py_compile app.py transaction_processor.py tests\test_transaction_processor.py
 ```
 
-## Income Calendar Persistence - Development Only
+## Local Planning Features
+
+## Manual Bill Planning
+
+Open **Bill planning** from the upload page or income forecast, or visit `/bills`. Add one bill name, dollar amount, and due date. An optional funding buffer defaults to **three calendar days before the due date**; zero means the due date itself. Bills are listed by earliest funding deadline, including past dates. Amounts use integer cents; blank amounts are rejected and explicit zero is permitted. No weekend/holiday adjustments are made.
+
+These are individual planning occurrences, not recurring bill templates, reservations, payments, or income allocations. Real local bill-planning records are approved for this prototype. Editing, deletion, bill-candidate import from Sheets, payment status, recurring generation, and funding recommendations remain deferred. Refreshing after saving does not resubmit, but deliberately submitting the same bill again can create a duplicate. Records remain private/local and do not synchronize through Git. Migration `0003_bill_occurrences` adds the bill table without changing income records; back up the local database before upgrading. Downgrading this migration deletes all bill records and is not a recovery method.
+
+## Income Calendar Usage
 
 **Projected income forecast** is available from the upload and income-source pages at `/income/forecast`. It lists saved paydays across all sources from this computer's current date for the selected number of calendar days (today counts as day one). It uses payday overrides before source defaults and totals known amounts in integer cents. Missing amounts are shown and excluded from the known total; zero estimates remain explicit. This read-only view does not infer missing paydays, reconcile deposits, flag overdue income, or calculate spendable money. The default is 90 days; choose any whole number from 1 to 365 and click Update forecast. The selected horizon stays in the page URL as `?days=30`, so it can be bookmarked or refreshed. It is not saved as an account preference. Invalid values show an error instead of a forecast total.
 
-The user has approved real pay dates and expected net amounts in this local planning prototype. This is a limited exception to the original synthetic-only restriction; bank-transaction migration, confirmed funding, deployment, and shared operation remain unapproved. The local SQLite records do not synchronize to another computer. Tests still use synthetic data only.
+The user has approved real pay dates and expected net amounts in this local planning prototype. This is a limited exception to the original synthetic-only restriction; bank-transaction migration, confirmed funding, deployment, and shared operation remain unapproved. Real local bill-planning records are also explicitly approved. The local SQLite records do not synchronize to another computer. Tests still use synthetic data only.
 
 On a source page, **Default expected take-home pay** sets the projected net amount for every Draft date without an override, including past dates. Set a **Payday override** to change only that occurrence; clearing it restores the default. Blank default means unknown; zero is an explicit zero estimate. Enter dollars without commas, with at most two decimal places. Amounts are stored as integer cents and never count as deposits, balances, or reserved funds. These are editable projections, not immutable historical forecasts; revision history and effective-dated defaults are deferred. No deduction calculation or forecast total is introduced here.
 
@@ -107,7 +115,7 @@ python -m alembic current
 
 SQLAlchemy defines records and database operations; Alembic records and applies versioned schema changes. `upgrade head` creates the two income-calendar tables and records the migration revision. Running it again preserves existing rows. Importing the Python modules does not create a database or tables.
 
-By default, the database is `instance/development.sqlite3`, resolved from the repository root rather than the terminal's current folder. The ignored `instance/` directory may hold the explicitly approved local pay-calendar and expected-net planning records. `DATABASE_URL` can select another development database; check the target before migration and back up existing records. PostgreSQL remains the shared-deployment target; no PostgreSQL service or deployment is introduced here.
+By default, the database is `instance/development.sqlite3`, resolved from the repository root rather than the terminal's current folder. The ignored `instance/` directory may hold the explicitly approved local pay-calendar, expected-net, and bill-planning records. `DATABASE_URL` can select another development database; check the target before migration and back up existing records. PostgreSQL remains the shared-deployment target; no PostgreSQL service or deployment is introduced here.
 
 The repository functions in `income_repository.py` accept a SQLAlchemy session. Use `database.session_scope(engine)` around an operation: it commits all successful changes together and rolls everything back on failure. Paydays and optional pay-period boundaries are Python `date` values. Created timestamps are stored as UTC without an offset for consistent SQLite storage. Newly created pay dates can only be drafts; they do not represent received deposits. Expected amounts can be edited; editing other record details, deletion, recurring scheduling, and confirmation remain deferred. Source names and source/date pairs are not assumed unique.
 

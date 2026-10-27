@@ -15,6 +15,7 @@ from upload_report import (
 from flask import Flask, render_template, request, send_from_directory, session
 from datetime import datetime
 from income_routes import income
+from bill_routes import bills
 
 
 SPREADSHEET_NAME = os.environ.get(
@@ -31,6 +32,7 @@ def open_browser():
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 app.register_blueprint(income)
+app.register_blueprint(bills)
 
 @app.route("/")
 def home():

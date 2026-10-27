@@ -11,6 +11,7 @@ from flask import Flask
 from database import PROJECT_ROOT, create_database_engine, session_scope
 from income_repository import list_income_sources, list_official_pay_dates
 from income_routes import income
+from bill_routes import bills
 from income_repository import create_official_pay_date
 from income_repository import parse_net_cents, expected_net_cents, net_amount_text, income_forecast
 from sqlalchemy.exc import SQLAlchemyError
@@ -35,6 +36,7 @@ class IncomeRouteTests(unittest.TestCase):
         app.config.update(TESTING=True, SECRET_KEY="synthetic-test", DATABASE_URL=self.url)
         app.add_url_rule("/", endpoint="home", view_func=lambda: "Upload")
         app.register_blueprint(income)
+        app.register_blueprint(bills)
         return app
 
     def post(self, path, **values):

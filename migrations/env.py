@@ -2,6 +2,7 @@ from alembic import context
 
 from database import Base, create_database_engine, get_database_url
 import income_models  # Register the mapped tables with Base.metadata.
+import bill_models
 
 
 config = context.config

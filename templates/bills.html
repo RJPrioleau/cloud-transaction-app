@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bill Planning</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 1rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: .7rem; border-bottom: 1px solid #ccc; }
+        label { display: block; margin: 1rem 0; }
+        input { display: block; padding: .5rem; max-width: 100%; }
+        button { padding: .6rem 1rem; cursor: pointer; }
+        [role="alert"] { color: #a00; }
+    </style>
+</head>
+<body>
+<nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.forecast') }}">Projected income</a></nav>
+<h1>Bill Planning</h1>
+<p>Individual obligations for planning only. No money is reserved and no payment is scheduled or initiated. Records stay on this computer.</p>
+{% if unavailable %}
+<p role="alert">Bill database unavailable. Run <code>python -m alembic upgrade head</code> from the project folder after backing up your database, or check the database connection.</p>
+{% else %}
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<h2>Upcoming obligations</h2>
+<p>All saved bills are listed by earliest funding deadline, including past dates. Recording a bill does not mark it funded or paid.</p>
+<table>
+<thead><tr><th scope="col">Bill</th><th scope="col">Amount due</th><th scope="col">Due date</th><th scope="col">Funding deadline</th><th scope="col">Buffer</th></tr></thead>
+<tbody>
+{% for bill in bills %}
+<tr><td>{{ bill.name }}</td><td>${{ net_amount_text(bill.amount_cents) }}</td><td>{{ bill.due_date }}</td><td>{{ bill.funding_deadline }}</td><td>{{ bill.funding_buffer_days }} calendar day(s)</td></tr>
+{% else %}<tr><td colspan="5">No bills recorded yet.</td></tr>{% endfor %}
+</tbody></table>
+<h2>Add one bill occurrence</h2>
+<p>This adds one obligation, not a recurring schedule. Check the details before saving; editing and deletion are not available yet.</p>
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<label>Bill name <input name="name" maxlength="200" value="{{ values.get('name', '') }}" required></label>
+<label>Amount due ($) <input name="amount" inputmode="decimal" placeholder="0.00" value="{{ values.get('amount', '') }}" required></label>
+<label>Due date <input type="date" name="due_date" value="{{ values.get('due_date', '') }}" required></label>
+<label>Funding buffer (calendar days before due date)
+<input type="number" name="funding_buffer_days" min="0" step="1" placeholder="3" value="{{ values.get('funding_buffer_days', '') }}"></label>
+<p>Leave blank for 3 calendar days. Zero means fund on the due date. Weekends and holidays are not adjusted.</p>
+<button type="submit">Add bill occurrence</button>
+</form>
+{% endif %}
+</body></html>

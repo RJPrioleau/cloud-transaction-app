@@ -18,6 +18,7 @@ from income_repository import (
     create_income_source, create_official_pay_date,
     list_income_sources, list_official_pay_dates,
 )
+from bill_repository import create_bill, list_bills
 
 
 class DatabaseMigrationTests(unittest.TestCase):
@@ -38,7 +39,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         environment = dict(os.environ)
         environment["DATABASE_URL"] = "sqlite:///" + str(self.root / "not-created" / "income.sqlite3")
         result = subprocess.run(
-            [sys.executable, "-c", "import database, income_models, income_repository"],
+            [sys.executable, "-c", "import database, income_models, income_repository, bill_models, bill_repository, bill_routes"],
             cwd=PROJECT_ROOT, env=environment, capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -49,7 +50,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         engine = create_database_engine(self.url)
         try:
             self.assertEqual(set(inspect(engine).get_table_names()), {
-                "alembic_version", "income_sources", "official_pay_dates",
+                "alembic_version", "income_sources", "official_pay_dates", "bill_occurrences",
             })
             self.assertEqual(
                 {c["name"] for c in inspect(engine).get_columns("official_pay_dates")},
@@ -125,6 +126,7 @@ class DatabaseMigrationTests(unittest.TestCase):
                 )
                 source.expected_net_cents = 123456
                 payday.expected_net_override_cents = 125001
+                bill = create_bill(session, "Synthetic bill", 12345, date(2027, 1, 2))
             backup_sqlite_database(engine, backup_path)
         finally:
             engine.dispose()
@@ -141,6 +143,10 @@ class DatabaseMigrationTests(unittest.TestCase):
                 self.assertEqual(list_income_sources(session)[0].expected_net_cents, 123456)
                 saved = list_official_pay_dates(session, source.id)[0]
                 self.assertEqual(saved.expected_net_override_cents, 125001)
+                restored_bill = list_bills(session)[0]
+                self.assertEqual((restored_bill.id, restored_bill.name, restored_bill.amount_cents,
+                                  restored_bill.due_date, restored_bill.funding_deadline),
+                                 (bill.id, "Synthetic bill", 12345, date(2027, 1, 2), date(2026, 12, 30)))
                 self.assertEqual(
                     (saved.id, saved.income_source_id, saved.official_pay_date, saved.pay_period_start,
                      saved.pay_period_end, saved.source_reference, saved.review_status, saved.created_at),
@@ -150,7 +156,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with restored.connect() as connection:
                 self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
-                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0002_expected_net_pay")
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0003_bill_occurrences")
         finally:
             restored.dispose()
 
@@ -165,6 +171,30 @@ class DatabaseMigrationTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 backup_sqlite_database(engine, destination)
             self.assertEqual(destination.read_bytes(), b"preserve existing file")
+        finally:
+            engine.dispose()
+
+    def test_bill_migration_preserves_populated_income_and_repeat_upgrade_preserves_bills(self):
+        command.upgrade(self.config, "0002_expected_net_pay")
+        engine = create_database_engine(self.url)
+        try:
+            with session_scope(engine) as db:
+                source = create_income_source(db, "Example")
+                source.expected_net_cents = 123456
+                payday = create_official_pay_date(db, source.id, date(2027, 1, 8))
+                payday.expected_net_override_cents = 120001
+            with engine.connect() as connection:
+                before_source = connection.execute(text("SELECT * FROM income_sources")).all()
+                before_dates = connection.execute(text("SELECT * FROM official_pay_dates")).all()
+            command.upgrade(self.config, "head")
+            with engine.connect() as connection:
+                self.assertEqual(connection.execute(text("SELECT * FROM income_sources")).all(), before_source)
+                self.assertEqual(connection.execute(text("SELECT * FROM official_pay_dates")).all(), before_dates)
+            with session_scope(engine) as db:
+                bill = create_bill(db, "Example bill", 12345, date(2027, 1, 2))
+            command.upgrade(self.config, "head")
+            with session_scope(engine) as db:
+                self.assertEqual(list_bills(db)[0].id, bill.id)
         finally:
             engine.dispose()
 

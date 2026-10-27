@@ -1,8 +1,10 @@
 # Roadmap
 
-This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds expected net pay defaults and payday overrides to the local calendar, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds individual manual bill planning alongside the income calendar and forecast, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
 
 ## Current Milestone - Income Calendar Persistence Foundation
+
+- [x] Approved individual manual bill occurrences: exact-cent amounts, due dates, default/override funding buffers, deadline-sorted listing, persistence/migration/recovery tests. Real local bill-planning data approved; recurring schedules, reservations, and payments remain separate future slices.
 
 - [x] Add approved 1–365 day forecast selection, defaulting to 90, with validated URL input and no database changes.
 
@@ -10,7 +12,7 @@ This roadmap records approved project direction and implementation milestones. T
 
 The approved yearly-selection slice adds a source/year-labeled calendar, batch Draft creation, and skipping already-saved dates. Manual selection replaces PDF importing for the current workflow. Visual browser acceptance remains pending.
 
-Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. The user approved real local pay dates and expected-net projections as a limited prototype exception to synthetic-only development. Local records do not synchronize. Deployment, purchases, and existing bank-data migration are not approved.
+Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. The user approved real local pay dates, expected-net projections, and individual bill-planning records as a limited prototype exception to synthetic-only development. Local records do not synchronize. Deployment, purchases, and existing bank-data migration are not approved.
 
 - [x] Add nullable expected-net source defaults and per-payday overrides in integer cents, editable through the source page, with migration preservation and synthetic recovery coverage.
 
