@@ -15,6 +15,13 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 7. The app writes new transactions to the sheet and skips duplicates.
 8. The app shows an upload report and writes a CSV report/log locally.
 
+### Amount And Month Conventions
+
+- Imported amounts intentionally use positive magnitudes. Category-based budget treatment determines whether a transaction contributes as income or expense; preserving the source bank's amount sign is not the current import contract.
+- The report's amount totals sum transaction magnitudes and may combine income and expenses. They are not spending-only totals or signed net cash flow.
+- The selected worksheet is the import destination, not a date filter. The user normally exports the current month's transactions before uploading. A cross-month export is imported in full to the selected worksheet; the past-30-days export used for TEST was intentional.
+- A manual source-file audit on 2026-10-26 confirmed that all 295 rows in the tested export matched the initial upload report after the intended absolute-value conversion, with no omitted or extra rows and no cent-rounding discrepancies. A repeat upload produced 295 duplicates and no additions. This verifies the tested export, not every possible bank format.
+
 ## Current Inputs
 
 - Bank transaction exports in `.csv` or `.xlsx` format.
@@ -33,7 +40,7 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 
 - The upload page links to a separate Reset TEST confirmation page. A confirmed POST with a one-use session token clears constant values only in H, I, K, O, and P, rows 69–383, on the worksheet named exactly `TEST`.
 - Formula cells, formatting, headings, other columns and rows, live-month worksheets, and local reports/logs are preserved. Missing/invalid confirmation never connects to Sheets. An empty section requires no clear request.
-- The current template's imported section ends at row 383. Reset does not clear overflow entries below that row, including existing imports observed in rows 384–398 during setup. The upload writer currently does not enforce this ending row.
+- The current template's imported section ends at row 383; row 384 contains the Total Transactions heading and formula. Reset leaves that total row and all lower rows untouched. Old overflow entries below the total row were cleared manually before the fresh TEST verification. The upload writer currently does not enforce the section's ending row.
 - Future use may require adding transaction rows at the bottom of the imported section. How the app discovers and enforces an expanded section boundary remains an open decision; this reset does not assume all lower worksheet rows are safe to clear.
 
 ## Known Technical Shape
