@@ -85,6 +85,8 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Income Calendar Persistence - Development Only
 
+For quick yearly entry, select an income source and click **Select pay dates for [source] for the year**. Choose a year, click the official paydays while viewing your employer calendar alongside the app, and click **Save pay dates**. Blue dates are selected; green dates are already saved. Each batch saves together as Draft and skips dates already stored for that source. This does not remove saved dates or change their optional details. The individual-date form remains available for pay-period details. PDF importing is deferred in favor of manual yearly selection; no PDF dependency is required.
+
 The database provides create/read functions and a browser interface for income sources and **draft** official pay dates. It does not change transaction imports, Google Sheets, account balances, or funding decisions.
 
 After database setup below, run `.\start_app.ps1 -Restart` and select **Draft Income Calendar** on the upload page (http://127.0.0.1:5000/income). Create a synthetic income source, select it, and add official dates with optional pay-period boundaries and a reference. Dates appear chronologically and remain drafts. Validation errors preserve form entries. Successful submissions redirect to a read-only GET, so refreshing the resulting page does not resubmit the form. Deliberately submitting the same values again can still create another record; duplicate review is deferred. Forms use session tokens. Restarting the server may require reopening the form.

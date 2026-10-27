@@ -4,6 +4,8 @@ This roadmap records approved project direction and implementation milestones. T
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+The approved yearly-selection slice adds a source/year-labeled calendar, batch Draft creation, and skipping already-saved dates. Manual selection replaces PDF importing for the current workflow. Visual browser acceptance remains pending.
+
 Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; design toward one central PostgreSQL-backed financial dataset accessed from both computers. SQLite is for synthetic local development only. Deployment, purchases, and existing-data migration are not approved.
 
 - [x] Define income sources and draft official pay dates with stable IDs and source relationships.
@@ -17,7 +19,7 @@ Architecture approved: retain Flask and Google Sheets; use SQLAlchemy/Alembic; d
 ## Approved Development Direction - Dependency Gates
 
 1. Finish this persistence slice, then the small draft calendar interface.
-2. Add reviewed employer-calendar extraction, occurrence exceptions, recurring schedules, and a configurable 90-day forecast. Expected money is never treated as received money.
+2. Use manual yearly payday selection instead of PDF extraction for now; add occurrence exceptions, recurring schedules, and a configurable 90-day forecast in separately approved slices. Expected money is never treated as received money.
 3. Connect the existing importer to shared transaction/account identity before actual-income reconciliation; preserve positive-magnitude Sheets output while retaining explicit bank movement in new records.
 4. Add bill candidates/instances, funding deadlines, recommendations, and shortfall views. Bring verified balances and commitment accounting forward before confirming reservations.
 5. Add payment attempts, partial payments, autopay tracking, transfers, and risk; bill-payment clearance requires user confirmation even when other matching can be automatic.

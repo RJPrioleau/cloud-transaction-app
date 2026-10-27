@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Select pay dates for {{ source.name }} — {{ year }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1100px; margin: 1rem auto; padding: 1rem; }
+        .months { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 1rem; }
+        table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+        caption { font-weight: bold; padding: .6rem; }
+        th { font-size: .8rem; }
+        td { text-align: center; height: 2rem; }
+        .day { display: block; position: relative; }
+        .day input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; left: 0; cursor: pointer; }
+        .day span { display: block; padding: .4rem 0; border: 1px solid #ccc; border-radius: 4px; }
+        .day input:checked + span { background: #174ea6; color: white; }
+        .day input:focus-visible + span { outline: 3px solid #d97900; }
+        .saved { display: block; background: #d8eddf; padding: .4rem 0; border-radius: 4px; }
+        .actions { position: sticky; bottom: 0; background: white; padding: 1rem; border-top: 1px solid #ccc; }
+        button { padding: .6rem 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+<a href="{{ url_for('income.calendar', source_id=source.id) }}">Back to {{ source.name }}</a>
+<h1>Select pay dates for {{ source.name }} — {{ year }}</h1>
+<form method="get">
+    <label>Year <input type="number" name="year" value="{{ year }}" min="1" max="9999" required></label>
+    <button type="submit">Show year</button>
+</form>
+<p>Click the official paydays, then save. Blue = selected. Green = already saved. Dates remain Draft and do not represent received money.</p>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<input type="hidden" name="year" value="{{ year }}">
+<div class="months">
+{% for name, weeks in months %}
+<table>
+<caption>{{ name }}</caption>
+<thead><tr>{% for weekday in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] %}<th scope="col">{{ weekday }}</th>{% endfor %}</tr></thead>
+<tbody>
+{% for week in weeks %}<tr>
+{% for day in week %}<td>
+{% if day %}
+{% if day in existing %}<span class="saved" title="{{ day }} — saved Draft" aria-label="{{ day }} — saved Draft">{{ day.day }}</span>
+{% else %}<label class="day"><input type="checkbox" name="pay_dates" value="{{ day.isoformat() }}" aria-label="{{ day }}" {% if day.isoformat() in selected %}checked{% endif %}><span>{{ day.day }}</span></label>{% endif %}
+{% endif %}
+</td>{% endfor %}
+</tr>{% endfor %}
+</tbody></table>
+{% endfor %}
+</div>
+<div class="actions"><button type="submit">Save pay dates</button></div>
+</form>
+</body></html>

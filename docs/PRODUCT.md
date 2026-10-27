@@ -105,7 +105,7 @@ These requirements remain inputs for incremental financial-system development. T
 
 The budgeting system must not assume income arrives on fixed calendar dates such as the 1st and 15th. It must eventually model actual confirmed pay dates because employer pay schedules can move through the calendar while bill due dates remain relatively fixed.
 
-The app should support importing employer-provided pay calendars from practical source formats such as PDF, XLSX, CSV, or other formats considered later. The app must not hard-code one employer's payroll schedule into Python.
+The current approved workflow is manual selection on one yearly calendar labeled with the income source and year, such as "Select pay dates for WSP — 2026". Selected dates save together as Draft; dates already stored for that source are marked and skipped. This route checks for existing dates within its transaction; concurrent multi-writer uniqueness is not yet guaranteed and must be addressed before shared deployment. The individual-date form remains available and does not deduplicate repeated entries. No schema changes or new dependencies are needed. PDF extraction is deferred. Future source-file import may be reconsidered; the app must not hard-code one employer's payroll schedule into Python.
 
 Imported calendar data should follow this conceptual flow:
 

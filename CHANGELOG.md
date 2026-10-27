@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a yearly payday selector labeled with the income source and year. Users click dates and save them together as Draft; saved dates are marked and skipped on repeated submission. Includes leap-year, validation, persistence, source-isolation, and batch-rollback coverage. PDF calendar importing is deferred.
+
 - Added the synthetic-data Draft Income Calendar interface: create/list sources, add/view chronological draft dates, optional periods/references, validation, session form tokens, and redirect-after-save behavior. Database access occurs only on calendar requests; importer behavior is preserved.
 
 - Added the synthetic-development income-calendar persistence foundation using SQLAlchemy/Alembic: income sources, draft official pay dates, create/read operations, validation, database constraints, transaction rollback, and SQLite backup/recovery tests. Existing importer and Flask routes remain unchanged.

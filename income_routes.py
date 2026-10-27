@@ -1,5 +1,6 @@
 """Draft calendar interface; database access is limited to calendar requests."""
 from datetime import date
+import calendar as year_calendar
 import secrets
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, session, url_for
@@ -13,6 +14,65 @@ from income_repository import (
 )
 
 income = Blueprint("income", __name__)
+
+
+@income.route("/income/<source_id>/paydates", methods=["GET", "POST"])
+def select_paydates(source_id):
+    token = session.setdefault("income_form_token", secrets.token_urlsafe(32))
+    if request.method == "POST" and not secrets.compare_digest(
+        token, request.form.get("token", "")
+    ):
+        return "Form expired. Reopen the income calendar and try again.", 400
+    try:
+        year = int(request.values.get("year", date.today().year))
+        if not 1 <= year <= 9999:
+            raise ValueError
+    except (ValueError, TypeError):
+        return "Choose a year from 1 to 9999.", 400
+
+    selected = set(request.form.getlist("pay_dates"))
+    error = None
+    status = 200
+    engine = create_database_engine(current_app.config.get("DATABASE_URL"))
+    try:
+        with session_scope(engine) as db:
+            source = db.get(IncomeSource, source_id)
+            if source is None:
+                abort(404)
+            existing = {item.official_pay_date for item in list_official_pay_dates(db, source_id)}
+            if request.method == "POST":
+                try:
+                    if not selected:
+                        raise ValueError("Select at least one pay date.")
+                    try:
+                        parsed = {date.fromisoformat(value) for value in selected}
+                    except ValueError:
+                        raise ValueError("Select valid calendar dates.") from None
+                    if any(day.year != year for day in parsed):
+                        raise ValueError("Select dates within the displayed year.")
+                except ValueError as invalid:
+                    error = str(invalid)
+                    status = 400
+                else:
+                    for day in sorted(parsed - existing):
+                        create_official_pay_date(db, source_id, day)
+        if request.method == "POST" and not error:
+            return redirect(url_for("income.select_paydates", source_id=source_id, year=year), code=303)
+        months = [
+            (year_calendar.month_name[month], [
+                [date(year, month, day) if day else None for day in week]
+                for week in year_calendar.Calendar(firstweekday=6).monthdayscalendar(year, month)
+            ]) for month in range(1, 13)
+        ]
+        return render_template(
+            "income_year.html", source=source, year=year, months=months,
+            existing=existing, selected=selected, token=token, error=error,
+        ), status
+    except SQLAlchemyError:
+        current_app.logger.exception("Income calendar database unavailable")
+        return render_template("income_calendar.html", unavailable=True), 503
+    finally:
+        engine.dispose()
 
 
 def calendar_date(field, required=False):

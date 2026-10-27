@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from alembic import command
 from alembic.config import Config
@@ -9,6 +10,8 @@ from flask import Flask
 from database import PROJECT_ROOT, create_database_engine, session_scope
 from income_repository import list_income_sources, list_official_pay_dates
 from income_routes import income
+from income_repository import create_official_pay_date
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class IncomeRouteTests(unittest.TestCase):
@@ -99,3 +102,64 @@ class IncomeRouteTests(unittest.TestCase):
             response = self.client.get("/income")
         self.assertEqual(response.status_code, 503)
         self.assertIn(b"python -m alembic upgrade head", response.data)
+
+    def saved_dates(self, location):
+        engine = create_database_engine(self.url)
+        try:
+            with session_scope(engine) as db:
+                return list_official_pay_dates(db, location.rsplit("/", 1)[1])
+        finally:
+            engine.dispose()
+
+    def test_year_calendar_label_leap_day_and_year_validation(self):
+        location = self.source()
+        response = self.client.get(location + "/paydates?year=2028")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Select pay dates for WSP — 2028", response.get_data(as_text=True))
+        self.assertIn(b'value="2028-02-29"', response.data)
+        self.assertEqual(response.data.count(b'type="checkbox"'), 366)
+        for year in ("bad", "0", "10000"):
+            self.assertEqual(self.client.get(location + "/paydates?year=" + year).status_code, 400)
+        self.assertEqual(self.client.get("/income/missing/paydates").status_code, 404)
+
+    def test_bulk_dates_persist_skip_existing_and_remain_source_specific(self):
+        location = self.source()
+        path = location + "/paydates"
+        values = {"year": "2026", "pay_dates": ["2026-11-06", "2026-11-13", "2026-11-06"]}
+        for _ in range(2):
+            response = self.post(path, **values)
+            self.assertEqual(response.status_code, 303)
+            self.assertIn("year=2026", response.headers["Location"])
+        records = self.saved_dates(location)
+        self.assertEqual([str(item.official_pay_date) for item in records], ["2026-11-06", "2026-11-13"])
+        self.assertTrue(all(item.review_status == "draft" for item in records))
+        reopened = self.make_app().test_client().get(path + "?year=2026")
+        self.assertIn(b"2026-11-06", reopened.data)
+        self.assertNotIn(b'value="2026-11-06"', reopened.data)
+        other = self.source("VA")
+        self.assertEqual(self.saved_dates(other), [])
+        self.assertEqual(self.post(other + "/paydates", **values).status_code, 303)
+        self.assertEqual(len(self.saved_dates(other)), 2)
+
+    def test_bulk_invalid_dates_and_token_save_nothing(self):
+        location = self.source()
+        path = location + "/paydates"
+        for days in ([], ["2026-11-06", "bad"], ["2026-11-06", "2026-02-30"],
+                     ["2026-11-06", "2027-01-01"]):
+            self.assertEqual(self.post(path, year="2026", pay_dates=days).status_code, 400)
+            self.assertEqual(self.saved_dates(location), [])
+        self.assertEqual(self.client.post(path, data={"year": "2026", "pay_dates": "2026-11-06"}).status_code, 400)
+        self.assertEqual(self.saved_dates(location), [])
+
+    def test_bulk_failure_rolls_back_earlier_dates(self):
+        location = self.source()
+        def fail_second(db, source_id, day):
+            if day.day == 13:
+                raise SQLAlchemyError("Synthetic write failure")
+            return create_official_pay_date(db, source_id, day)
+        with patch("income_routes.create_official_pay_date", side_effect=fail_second):
+            with self.assertLogs(self.app.logger, level="ERROR"):
+                response = self.post(location + "/paydates", year="2026",
+                                     pay_dates=["2026-11-06", "2026-11-13"])
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(self.saved_dates(location), [])

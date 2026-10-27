@@ -27,6 +27,7 @@
 </ul>
 {% if source %}
 <h2>{{ source.name }} — Draft official pay dates</h2>
+<p><a href="{{ url_for('income.select_paydates', source_id=source.id) }}">Select pay dates for {{ source.name }} for the year</a></p>
 <table>
 <thead><tr><th>Official payday</th><th>Pay-period start</th><th>Pay-period end</th><th>Reference</th><th>Status</th></tr></thead>
 <tbody>
