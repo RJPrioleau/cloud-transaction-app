@@ -8,6 +8,7 @@ from pathlib import Path
 from upload_report import (
     UPLOAD_LOG_HEADER,
     build_budget_summary,
+    build_misc_review,
     append_upload_log_csv,
     build_transaction_report_rows,
     build_transaction_rows_html,
@@ -18,6 +19,34 @@ from upload_report import (
 
 
 class UploadReportTests(unittest.TestCase):
+    def test_misc_review_groups_exact_descriptions_and_excludes_other_categories(self):
+        added = [
+            {"budget_name": "MISC", "description": "Example Store", "amount": 0.1},
+            {"budget_name": "MISC", "description": "Example Store", "amount": 0.2},
+            {"budget_name": "MISC", "description": "example store", "amount": 2},
+            {"budget_name": "Gas", "description": "Example Store", "amount": 42.1},
+        ]
+        duplicates = [
+            {"budget_name": "MISC", "description": "Example Store", "amount": 5},
+            {"budget_name": "MISC", "description": "Another Store", "amount": 7},
+            {"budget_name": "Round up Transfer", "description": "Roundup Example", "amount": 0.57},
+        ]
+
+        self.assertEqual(build_misc_review(added, duplicates), [
+            {"description": "Another Store", "added_count": 0, "added_total": Decimal("0"),
+             "duplicate_count": 1, "duplicate_total": Decimal("7")},
+            {"description": "Example Store", "added_count": 2, "added_total": Decimal("0.3"),
+             "duplicate_count": 1, "duplicate_total": Decimal("5")},
+            {"description": "example store", "added_count": 1, "added_total": Decimal("2"),
+             "duplicate_count": 0, "duplicate_total": Decimal("0")},
+        ])
+
+    def test_misc_review_is_empty_when_no_misc_transactions_exist(self):
+        self.assertEqual(build_misc_review([], []), [])
+        self.assertEqual(build_misc_review([
+            {"budget_name": "Gas", "description": "Example", "amount": 10}
+        ], []), [])
+
     def test_budget_summary_groups_statuses_and_sums_decimal_amounts(self):
         added = [
             {"budget_name": "Round up Transfer", "amount": 0.1},

@@ -134,6 +134,32 @@
         <p>No transactions to summarize.</p>
         {% endif %}
 
+        <h3>MISC Review</h3>
+        <p>MISC is the fallback when no category rule matches. These entries are grouped by exact description for review; no category changes are made here.</p>
+        {% if misc_review %}
+        <details>
+            <summary>Review {{ misc_review|length }} distinct MISC description(s)</summary>
+            <table id="misc-review">
+                <thead>
+                    <tr><th>Description</th><th>Added Count</th><th>Added Total</th><th>Duplicate Count</th><th>Duplicate Total</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in misc_review %}
+                    <tr>
+                        <td>{{ item.description|e }}</td>
+                        <td>{{ item.added_count }}</td>
+                        <td>${{ "%.2f"|format(item.added_total) }}</td>
+                        <td>{{ item.duplicate_count }}</td>
+                        <td>${{ "%.2f"|format(item.duplicate_total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+        {% else %}
+        <p>No MISC transactions in this upload.</p>
+        {% endif %}
+
         {{ report_html }}
 
         <div class="buttons">

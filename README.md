@@ -25,6 +25,7 @@ Current priority:
 - Google Sheets write workflow
 - Browser-based upload report with each transaction's assigned Budget Name
 - Budget Name summary with separate added/duplicate counts and totals
+- Read-only MISC review grouped by description to help identify potential category rules
 - Local generated CSV reports and upload logs
 - Confirmed TEST-only reset of imported values in rows 69–383, preserving formulas and formatting
 

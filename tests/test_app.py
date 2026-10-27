@@ -318,6 +318,30 @@ class UploadRouteTests(unittest.TestCase):
                 os.chdir(original_directory)
 
 
+class ReportReviewTests(unittest.TestCase):
+    def test_duplicate_only_misc_review_escapes_description_and_shows_separate_totals(self):
+        from flask import render_template
+        from upload_report import build_misc_review
+
+        review = build_misc_review([], [
+            {"budget_name": "MISC", "description": "Example <store> & shop", "amount": 12.34}
+        ])
+        with app.test_request_context():
+            html = render_template(
+                "report.html", processed_count=1, file_count=1, month="TEST",
+                added_count=0, duplicate_count=1, total_added_amount=0,
+                total_duplicate_amount=12.34, budget_summary=[], misc_review=review,
+                report_html="", report_filename="example.csv",
+            )
+
+        self.assertIn('id="misc-review"', html)
+        self.assertRegex(
+            html,
+            r"<td>Example &lt;store&gt; &amp; shop</td>\s*<td>0</td>\s*<td>\$0\.00</td>\s*<td>1</td>\s*<td>\$12\.34</td>",
+        )
+        self.assertNotIn("Example <store>", html)
+
+
 class ResetTestRouteTests(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()

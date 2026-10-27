@@ -16,13 +16,25 @@ UPLOAD_LOG_HEADER = [
 
 
 def build_budget_summary(new_transactions, duplicate_transactions):
+    return _build_grouped_summary(new_transactions, duplicate_transactions, "budget_name")
+
+
+def build_misc_review(new_transactions, duplicate_transactions):
+    return _build_grouped_summary(
+        [item for item in new_transactions if item["budget_name"] == "MISC"],
+        [item for item in duplicate_transactions if item["budget_name"] == "MISC"],
+        "description",
+    )
+
+
+def _build_grouped_summary(new_transactions, duplicate_transactions, group_field):
     summaries = {}
     for status, transactions in (("added", new_transactions), ("duplicate", duplicate_transactions)):
         for item in transactions:
-            name = item["budget_name"]
+            name = item[group_field]
             if name not in summaries:
                 summaries[name] = {
-                    "budget_name": name,
+                    group_field: name,
                     "added_count": 0,
                     "added_total": Decimal("0"),
                     "duplicate_count": 0,
@@ -30,7 +42,7 @@ def build_budget_summary(new_transactions, duplicate_transactions):
                 }
             summaries[name][f"{status}_count"] += 1
             summaries[name][f"{status}_total"] += Decimal(str(item["amount"]))
-    return sorted(summaries.values(), key=lambda row: row["budget_name"].casefold())
+    return sorted(summaries.values(), key=lambda row: (row[group_field].casefold(), row[group_field]))
 
 
 def append_upload_log_csv(log_path, row):

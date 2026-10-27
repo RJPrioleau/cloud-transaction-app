@@ -6,6 +6,7 @@ from budget_sheet import clear_test_imports, import_transactions_to_worksheet, o
 from upload_processing import process_uploaded_files
 from upload_report import (
     build_budget_summary,
+    build_misc_review,
     append_upload_log_csv,
     write_transaction_report_csv,
     build_upload_log_row,
@@ -142,6 +143,7 @@ def upload():
             total_duplicate_amount=total_duplicate_amount,
             report_html=report_html,
             budget_summary=build_budget_summary(new_transactions, duplicate_transactions),
+            misc_review=build_misc_review(new_transactions, duplicate_transactions),
             report_filename=report_filename,
         )
 

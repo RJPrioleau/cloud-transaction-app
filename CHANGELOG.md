@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added an expandable MISC review in browser reports, grouped by exact description with separate added/duplicate counts and decimal totals; no automatic category changes.
 - Added a browser Budget Name summary with separate added and duplicate counts and decimal amount totals above the detailed transaction tables.
 - Added `Budget Name` to newly generated browser and CSV transaction reports for both added and duplicate entries; existing report files remain unchanged.
 - Added a managed local start/restart/status/stop workflow with an exclusive localhost listener and startup source fingerprint, avoiding stale overlapping app processes. Updated the batch launcher to use it.
