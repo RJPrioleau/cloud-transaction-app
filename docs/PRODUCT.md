@@ -37,6 +37,11 @@ Cloud Transaction App is a personal financial workflow tool. It imports transact
 - Generated CSV report files.
 - Generated upload log entries.
 
+### Report Columns
+
+- New CSV reports use `Status`, `Date`, `Amount`, `Account`, `Description`, and `Budget Name`, in that order. Browser report tables show the same transaction fields, with added/duplicate status represented by separate sections.
+- `Budget Name` shows the category assigned while parsing this upload, including for skipped duplicates. It does not read back or change an existing worksheet row's category. Reports generated before this column was added retain their original contents.
+
 ## Reset TEST
 
 - The upload page links to a separate Reset TEST confirmation page. A confirmed POST with a one-use session token clears constant values only in H, I, K, O, and P, rows 69–383, on the worksheet named exactly `TEST`.

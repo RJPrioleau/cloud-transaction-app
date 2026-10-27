@@ -233,8 +233,8 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertEqual(len(report_paths), 1)
                 with report_paths[0].open(newline="", encoding="utf-8") as report_file:
                     self.assertEqual(list(csv.reader(report_file)), [
-                        ["Status", "Date", "Amount", "Account", "Description"],
-                        ["DUPLICATE", "09/02/2026", "5.99", "SoFi Checking (2695)", "APPLE.COM/BILL"],
+                        ["Status", "Date", "Amount", "Account", "Description", "Budget Name"],
+                        ["DUPLICATE", "09/02/2026", "5.99", "SoFi Checking (2695)", "APPLE.COM/BILL", "Apple Music"],
                     ])
                 with Path("logs/upload_log.csv").open(newline="", encoding="utf-8") as log_file:
                     log_rows = list(csv.reader(log_file))
@@ -286,6 +286,9 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertIn("totaling <strong>$42.10</strong>", html)
                 self.assertIn("totaling <strong>$5.99</strong>", html)
                 self.assertIn("<td>SHELL SERVICE</td>", html)
+                self.assertIn("<th>Budget Name</th>", html)
+                self.assertIn("<td>Gas</td>", html)
+                self.assertIn("<td>Apple Music</td>", html)
                 self.assertIn("<td>APPLE.COM/BILL</td>", html)
 
                 worksheet.batch_update.assert_called_once_with([
@@ -299,9 +302,9 @@ class UploadRouteTests(unittest.TestCase):
                 self.assertEqual(len(report_paths), 1)
                 with report_paths[0].open(newline="", encoding="utf-8") as report_file:
                     self.assertEqual(list(csv.reader(report_file)), [
-                        ["Status", "Date", "Amount", "Account", "Description"],
-                        ["ADDED", "09/01/2026", "42.10", "SoFi Checking (2695)", "SHELL SERVICE"],
-                        ["DUPLICATE", "09/02/2026", "5.99", "SoFi Checking (2695)", "APPLE.COM/BILL"],
+                        ["Status", "Date", "Amount", "Account", "Description", "Budget Name"],
+                        ["ADDED", "09/01/2026", "42.10", "SoFi Checking (2695)", "SHELL SERVICE", "Gas"],
+                        ["DUPLICATE", "09/02/2026", "5.99", "SoFi Checking (2695)", "APPLE.COM/BILL", "Apple Music"],
                     ])
                 with Path("logs/upload_log.csv").open(newline="", encoding="utf-8") as log_file:
                     log_rows = list(csv.reader(log_file))

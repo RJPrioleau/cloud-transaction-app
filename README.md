@@ -23,7 +23,7 @@ Current priority:
 - Rule-based budget category assignment
 - Duplicate detection against existing Google Sheets rows
 - Google Sheets write workflow
-- Browser-based upload report
+- Browser-based upload report with each transaction's assigned Budget Name
 - Local generated CSV reports and upload logs
 - Confirmed TEST-only reset of imported values in rows 69–383, preserving formulas and formatting
 

@@ -2,7 +2,7 @@ import csv
 import os
 
 
-TRANSACTION_REPORT_HEADER = ["Status", "Date", "Amount", "Account", "Description"]
+TRANSACTION_REPORT_HEADER = ["Status", "Date", "Amount", "Account", "Description", "Budget Name"]
 UPLOAD_LOG_HEADER = [
     "Timestamp",
     "Month",
@@ -47,7 +47,7 @@ def build_transaction_report_html(new_transactions, duplicate_transactions):
         report_html = (
             "<h3>Added Transactions</h3>"
             "<table>"
-            "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+            "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th><th>Budget Name</th></tr>"
         )
 
         report_html += build_transaction_rows_html(new_transactions, "added-row")
@@ -58,7 +58,7 @@ def build_transaction_report_html(new_transactions, duplicate_transactions):
     report_html += "<h3>Skipped Duplicates</h3>"
     report_html += (
         "<table>"
-        "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th></tr>"
+        "<tr><th>Date</th><th>Amount</th><th>Account</th><th>Description</th><th>Budget Name</th></tr>"
     )
 
     report_html += build_transaction_rows_html(duplicate_transactions, "duplicate-row")
@@ -74,6 +74,7 @@ def build_transaction_report_row(status, item):
         f"{float(item['amount']):.2f}",
         item["account"],
         item["description"],
+        item["budget_name"],
     ]
 
 
@@ -107,6 +108,7 @@ def build_transaction_rows_html(transactions, row_class):
             f"<td>{float(item['amount']):.2f}</td>"
             f"<td>{item['account']}</td>"
             f"<td>{item['description']}</td>"
+            f"<td>{item['budget_name']}</td>"
             f"</tr>"
         )
 

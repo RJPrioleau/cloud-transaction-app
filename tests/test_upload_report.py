@@ -42,6 +42,7 @@ class UploadReportTests(unittest.TestCase):
             "amount": 42.1,
             "account": "Example Checking",
             "description": description,
+            "budget_name": "MISC",
         }]
 
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -54,8 +55,8 @@ class UploadReportTests(unittest.TestCase):
                 rows = list(csv.reader(report_file))
 
         self.assertEqual(rows, [
-            ["Status", "Date", "Amount", "Account", "Description"],
-            ["ADDED", "09/01/2026", "42.10", "Example Checking", description],
+            ["Status", "Date", "Amount", "Account", "Description", "Budget Name"],
+            ["ADDED", "09/01/2026", "42.10", "Example Checking", description, "MISC"],
         ])
 
     def test_builds_transaction_report_rows_with_added_then_duplicates(self):
@@ -65,6 +66,7 @@ class UploadReportTests(unittest.TestCase):
                 "amount": 42.1,
                 "account": "SoFi Checking (2695)",
                 "description": "SHELL SERVICE",
+                "budget_name": "Gas",
             },
         ]
         duplicate_transactions = [
@@ -73,19 +75,21 @@ class UploadReportTests(unittest.TestCase):
                 "amount": 5.99,
                 "account": "SoFi Checking (2695)",
                 "description": "APPLE.COM/BILL",
+                "budget_name": "Apple Music",
             },
         ]
 
         self.assertEqual(
             build_transaction_report_rows(new_transactions, duplicate_transactions),
             [
-                ["Status", "Date", "Amount", "Account", "Description"],
+                ["Status", "Date", "Amount", "Account", "Description", "Budget Name"],
                 [
                     "ADDED",
                     "09/01/2026",
                     "42.10",
                     "SoFi Checking (2695)",
                     "SHELL SERVICE",
+                    "Gas",
                 ],
                 [
                     "DUPLICATE",
@@ -93,6 +97,7 @@ class UploadReportTests(unittest.TestCase):
                     "5.99",
                     "SoFi Checking (2695)",
                     "APPLE.COM/BILL",
+                    "Apple Music",
                 ],
             ],
         )
@@ -104,6 +109,7 @@ class UploadReportTests(unittest.TestCase):
                 "amount": 42.1,
                 "account": "SoFi Checking (2695)",
                 "description": "SHELL SERVICE",
+                "budget_name": "Gas",
             },
         ]
         duplicate_transactions = [
@@ -112,6 +118,7 @@ class UploadReportTests(unittest.TestCase):
                 "amount": 5.99,
                 "account": "SoFi Checking (2695)",
                 "description": "APPLE.COM/BILL",
+                "budget_name": "Apple Music",
             },
         ]
 
@@ -121,6 +128,9 @@ class UploadReportTests(unittest.TestCase):
         )
 
         self.assertIn("<h3>Added Transactions</h3>", report_html)
+        self.assertEqual(report_html.count("<th>Budget Name</th>"), 2)
+        self.assertIn("<td>Gas</td>", report_html)
+        self.assertIn("<td>Apple Music</td>", report_html)
         self.assertIn("<tr class='added-row'>", report_html)
         self.assertIn("<td>SHELL SERVICE</td>", report_html)
         self.assertIn("<h3>Skipped Duplicates</h3>", report_html)
@@ -180,6 +190,7 @@ class UploadReportTests(unittest.TestCase):
                 "amount": 42.1,
                 "account": "SoFi Checking (2695)",
                 "description": "SHELL SERVICE",
+                "budget_name": "Gas",
             },
         ]
 
@@ -191,6 +202,7 @@ class UploadReportTests(unittest.TestCase):
                 "<td>42.10</td>"
                 "<td>SoFi Checking (2695)</td>"
                 "<td>SHELL SERVICE</td>"
+                "<td>Gas</td>"
                 "</tr>"
             ),
         )
