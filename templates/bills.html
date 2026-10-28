@@ -17,31 +17,38 @@
 <body>
 <nav><a href="{{ url_for('home') }}">Back to Upload</a> | <a href="{{ url_for('income.forecast') }}">Projected income</a></nav>
 <h1>Bills and Subscriptions</h1>
+<p><a href="{{ url_for('accounts.index') }}">Manage payment accounts</a></p>
 <p>Individual obligations for planning only. No money is reserved and no payment is scheduled or initiated. Records stay on this computer.</p>
 {% if unavailable %}
 <p role="alert">Bill database unavailable. Run <code>python -m alembic upgrade head</code> from the project folder after backing up your database, or check the database connection.</p>
 {% else %}
 {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+{% if not editing %}
 <p>Both sections use the same funding rules and are sorted by earliest funding deadline, including past dates. Recording an obligation does not mark it funded or paid.</p>
 {% for kind, heading in [('bill', 'Bills'), ('subscription', 'Subscriptions')] %}
 <section aria-labelledby="{{ kind }}-heading">
 <h2 id="{{ kind }}-heading">{{ heading }}</h2>
 <table>
-<thead><tr><th scope="col">Name</th><th scope="col">Amount due</th><th scope="col">Due date</th><th scope="col">Funding deadline</th><th scope="col">Buffer</th></tr></thead>
+<thead><tr><th scope="col">Name</th><th scope="col">Amount due</th><th scope="col">Due date</th><th scope="col">Funding deadline</th><th scope="col">Buffer</th><th scope="col">Payment account</th><th scope="col">Action</th></tr></thead>
 <tbody>
 {% for bill in bills | selectattr('kind', 'equalto', kind) %}
-<tr><td>{{ bill.name }}</td><td>${{ net_amount_text(bill.amount_cents) }}</td><td>{{ bill.due_date }}</td><td>{{ bill.funding_deadline }}</td><td>{{ bill.funding_buffer_days }} calendar day(s)</td></tr>
-{% else %}<tr><td colspan="5">{{ 'No bills recorded yet.' if kind == 'bill' else 'No subscriptions recorded yet.' }}</td></tr>{% endfor %}
+<tr><td>{{ bill.name }}</td><td>${{ net_amount_text(bill.amount_cents) }}</td><td>{{ bill.due_date }}</td><td>{{ bill.funding_deadline }}</td><td>{{ bill.funding_buffer_days }} calendar day(s)</td><td>{{ bill.payment_account.name if bill.payment_account else 'Unassigned' }}</td><td><a href="{{ url_for('bills.index', bill_id=bill.id) }}">Edit</a></td></tr>
+{% else %}<tr><td colspan="7">{{ 'No bills recorded yet.' if kind == 'bill' else 'No subscriptions recorded yet.' }}</td></tr>{% endfor %}
 </tbody></table>
 </section>
 {% endfor %}
-<h2>Add one bill or subscription occurrence</h2>
-<p>This adds one obligation, not a recurring schedule. Check the details before saving; editing and deletion are not available yet.</p>
+{% endif %}
+<h2>{{ 'Edit ' + editing.name if editing else 'Add one bill or subscription occurrence' }}</h2>
+<p>{{ 'Changes update this existing obligation and recalculate its funding deadline.' if editing else 'This adds one obligation, not a recurring schedule.' }} Deletion and subscription status controls are not available yet.</p>
 <form method="post">
 <input type="hidden" name="token" value="{{ token }}">
 <label>Type <select name="kind" required>
 <option value="bill" {% if values.get('kind', 'bill') == 'bill' %}selected{% endif %}>Bill</option>
 <option value="subscription" {% if values.get('kind') == 'subscription' %}selected{% endif %}>Subscription</option>
+</select></label>
+<label>Payment account <select name="payment_account_id">
+<option value="">Unassigned</option>
+{% for account in accounts %}<option value="{{ account.id }}" {% if values.get('payment_account_id') == account.id %}selected{% endif %}>{{ account.name }}</option>{% endfor %}
 </select></label>
 <label>Name <input name="name" maxlength="200" value="{{ values.get('name', '') }}" required></label>
 <label>Amount due ($) <input name="amount" inputmode="decimal" placeholder="0.00" value="{{ values.get('amount', '') }}" required></label>
@@ -49,7 +56,8 @@
 <label>Funding buffer (calendar days before due date)
 <input type="number" name="funding_buffer_days" min="0" step="1" placeholder="3" value="{{ values.get('funding_buffer_days', '') }}"></label>
 <p>Leave blank for 3 calendar days. Zero means fund on the due date. Weekends and holidays are not adjusted.</p>
-<button type="submit">Add occurrence</button>
+<button type="submit">{{ 'Save changes' if editing else 'Add occurrence' }}</button>
+{% if editing %}<a href="{{ url_for('bills.index') }}">Cancel</a>{% endif %}
 </form>
 {% endif %}
 </body></html>

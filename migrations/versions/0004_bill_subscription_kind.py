@@ -17,4 +17,8 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("bill_occurrences", "kind")
+    # A later SQLite table rebuild may reflect the inline check as a table check.
+    # Explicitly remove it before removing its column in either representation.
+    with op.batch_alter_table("bill_occurrences") as batch:
+        batch.drop_constraint("ck_bills_kind", type_="check")
+        batch.drop_column("kind")

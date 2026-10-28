@@ -2,8 +2,9 @@
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, Integer, String, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from account_models import PaymentAccount
 
 from database import Base
 
@@ -20,6 +21,8 @@ class BillOccurrence(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String(200))
     kind: Mapped[str] = mapped_column(String(16), default="bill", server_default="bill")
+    payment_account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("payment_accounts.id", ondelete="RESTRICT"))
+    payment_account: Mapped[PaymentAccount | None] = relationship(lazy="selectin")
     amount_cents: Mapped[int] = mapped_column(BigInteger)
     due_date: Mapped[date] = mapped_column(Date)
     funding_buffer_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")

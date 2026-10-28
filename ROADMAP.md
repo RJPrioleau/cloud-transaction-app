@@ -1,10 +1,13 @@
 # Roadmap
 
-This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds individual manual bill planning alongside the income calendar and forecast, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds obligation editing and named payment accounts alongside the income calendar and forecast, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
-- [x] Add approved Bill/Subscription classification and separate deadline-sorted sections while preserving existing obligations as Bills. Recurrence and editing remain deferred.
+- [x] Add approved obligation editing and named payment-account creation/renaming, optional account assignment, identity preservation, and migration/recovery coverage.
+- [ ] Next separate slice: subscription inactive/covered behavior, preserving real unpaid obligations and requiring amount/date confirmation on reactivation. Implementation scope still needs approval.
+
+- [x] Add approved Bill/Subscription classification and separate deadline-sorted sections while preserving existing obligations as Bills. Recurrence remains deferred; editing is implemented in the following slice.
 
 - [x] Approved individual manual bill occurrences: exact-cent amounts, due dates, default/override funding buffers, deadline-sorted listing, persistence/migration/recovery tests. Real local bill-planning data approved; recurring schedules, reservations, and payments remain separate future slices.
 

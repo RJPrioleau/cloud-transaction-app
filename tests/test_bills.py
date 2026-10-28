@@ -13,6 +13,9 @@ from bill_repository import create_bill, list_bills
 from bill_routes import bills
 from database import PROJECT_ROOT, create_database_engine, session_scope
 from income_routes import income
+from account_routes import accounts
+from account_repository import create_account, list_accounts
+from bill_repository import update_bill
 
 
 class BillTests(unittest.TestCase):
@@ -37,6 +40,7 @@ class BillTests(unittest.TestCase):
         app.add_url_rule("/", endpoint="home", view_func=lambda: "Upload")
         app.register_blueprint(income)
         app.register_blueprint(bills)
+        app.register_blueprint(accounts)
         return app
 
     def post(self, **changes):
@@ -144,3 +148,86 @@ class BillTests(unittest.TestCase):
         with self.assertRaises(IntegrityError):
             with self.engine.begin() as conn:
                 conn.execute(text("INSERT INTO bill_occurrences (id,name,amount_cents,due_date,created_at,kind) VALUES ('bad','Example',100,'2027-01-01','2026-01-01','other')"))
+
+    def test_edit_reclassifies_same_record_and_recalculates_deadline(self):
+        self.post()
+        with session_scope(self.engine) as db:
+            original = list_bills(db)[0]
+            original_id, created = original.id, original.created_at
+            account = create_account(db, "Checking")
+        path = f"/bills/{original_id}/edit"
+        self.assertIn(b'value="123.45"', self.client.get(path).data)
+        response = self.client.post(path, data={"token": self.token, "kind": "subscription",
+            "name": "Music", "amount": "15.99", "due_date": "2027-02-01",
+            "funding_buffer_days": "5", "payment_account_id": account.id})
+        self.assertEqual(response.status_code, 303)
+        with session_scope(self.engine) as db:
+            records = list_bills(db)
+            self.assertEqual(len(records), 1)
+            record = records[0]
+            self.assertEqual((record.id, record.created_at), (original_id, created))
+            self.assertEqual((record.kind, record.amount_cents, record.funding_deadline),
+                             ("subscription", 1599, date(2027, 1, 27)))
+            self.assertEqual(record.payment_account_id, account.id)
+        html = self.client.get('/bills').get_data(as_text=True)
+        self.assertIn("Music", html.split('<h2 id="subscription-heading">Subscriptions</h2>')[1])
+        self.assertIn("Checking", html)
+        self.assertEqual(self.client.get('/bills/missing/edit').status_code, 404)
+        self.assertEqual(self.client.post('/bills/missing/edit', data={'token': self.token}).status_code, 404)
+
+    def test_invalid_edit_changes_nothing_and_retains_values(self):
+        self.post()
+        with session_scope(self.engine) as db:
+            bill = list_bills(db)[0]
+        path = f'/bills/{bill.id}/edit'
+        values = dict(token=self.token, name='Changed', amount='1.001', due_date='2027-02-01', kind='subscription')
+        response = self.client.post(path, data=values)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'value="Changed"', response.data)
+        values.update(amount='25.01', payment_account_id='missing')
+        self.assertEqual(self.client.post(path, data=values).status_code, 400)
+        with session_scope(self.engine) as db:
+            saved = list_bills(db)[0]
+            self.assertEqual((saved.name, saved.amount_cents, saved.kind), ('Example bill', 12345, 'bill'))
+        self.assertEqual(self.client.post(path, data={}).status_code, 400)
+
+    def test_create_assign_unassign_and_rename_account_updates_links(self):
+        self.client.get('/accounts')
+        with self.client.session_transaction() as cookie:
+            token = cookie['account_form_token']
+        self.assertEqual(self.client.post('/accounts', data={'token': token, 'name': ' Original '}).status_code, 303)
+        with session_scope(self.engine) as db:
+            account = list_accounts(db)[0]
+            self.assertEqual(account.name, 'Original')
+        self.post(payment_account_id=account.id)
+        self.post(name='Other obligation', payment_account_id=account.id)
+        self.assertEqual(self.client.post(f'/accounts/{account.id}/rename', data={'token': token, 'name': '<New name>'}).status_code, 303)
+        html = self.make_app().test_client().get('/bills').data
+        self.assertEqual(html.count(b'&lt;New name&gt;'), 3)  # two rows plus the selector
+        with session_scope(self.engine) as db:
+            records = list_bills(db)
+            self.assertTrue(all(r.payment_account_id == account.id for r in records))
+            update_bill(db, records[0], records[0].name, records[0].amount_cents, records[0].due_date,
+                        payment_account_id=None)
+        self.assertIn(b'Unassigned', self.client.get('/bills').data)
+
+    def test_account_validation_missing_token_and_unknown_rename(self):
+        self.client.get('/accounts')
+        with self.client.session_transaction() as cookie:
+            token = cookie['account_form_token']
+        self.assertEqual(self.client.post('/accounts', data={'name': 'No token'}).status_code, 400)
+        for name in (' ', 'x' * 201):
+            self.assertEqual(self.client.post('/accounts', data={'token': token, 'name': name}).status_code, 400)
+        self.assertEqual(self.client.post('/accounts/missing/rename', data={'token': token, 'name': 'New'}).status_code, 404)
+        with session_scope(self.engine) as db:
+            self.assertEqual(list_accounts(db), [])
+            account = create_account(db, 'Keep name')
+        self.assertEqual(self.client.post(f'/accounts/{account.id}/rename', data={'token': token, 'name': ' '}).status_code, 400)
+        with session_scope(self.engine) as db:
+            self.assertEqual(list_accounts(db)[0].name, 'Keep name')
+
+    def test_account_foreign_key_rejects_nonexistent_reference(self):
+        self.post()
+        with self.assertRaises(IntegrityError):
+            with self.engine.begin() as conn:
+                conn.execute(text("UPDATE bill_occurrences SET payment_account_id='missing'"))

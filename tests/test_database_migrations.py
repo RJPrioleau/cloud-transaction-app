@@ -19,6 +19,7 @@ from income_repository import (
     list_income_sources, list_official_pay_dates,
 )
 from bill_repository import create_bill, list_bills
+from account_repository import create_account, list_accounts
 
 
 class DatabaseMigrationTests(unittest.TestCase):
@@ -50,7 +51,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         engine = create_database_engine(self.url)
         try:
             self.assertEqual(set(inspect(engine).get_table_names()), {
-                "alembic_version", "income_sources", "official_pay_dates", "bill_occurrences",
+                "alembic_version", "income_sources", "official_pay_dates", "bill_occurrences", "payment_accounts",
             })
             self.assertEqual(
                 {c["name"] for c in inspect(engine).get_columns("official_pay_dates")},
@@ -127,6 +128,8 @@ class DatabaseMigrationTests(unittest.TestCase):
                 source.expected_net_cents = 123456
                 payday.expected_net_override_cents = 125001
                 bill = create_bill(session, "Synthetic bill", 12345, date(2027, 1, 2), kind="subscription")
+                account = create_account(session, "Synthetic account")
+                bill.payment_account_id = account.id
             backup_sqlite_database(engine, backup_path)
         finally:
             engine.dispose()
@@ -145,6 +148,9 @@ class DatabaseMigrationTests(unittest.TestCase):
                 self.assertEqual(saved.expected_net_override_cents, 125001)
                 restored_bill = list_bills(session)[0]
                 self.assertEqual(restored_bill.kind, "subscription")
+                self.assertEqual(restored_bill.payment_account_id, account.id)
+                self.assertEqual(restored_bill.payment_account.name, "Synthetic account")
+                self.assertEqual(list_accounts(session)[0].id, account.id)
                 self.assertEqual((restored_bill.id, restored_bill.name, restored_bill.amount_cents,
                                   restored_bill.due_date, restored_bill.funding_deadline),
                                  (bill.id, "Synthetic bill", 12345, date(2027, 1, 2), date(2026, 12, 30)))
@@ -157,7 +163,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with restored.connect() as connection:
                 self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
-                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0004_bill_subscription_kind")
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0005_payment_accounts")
         finally:
             restored.dispose()
 
@@ -217,6 +223,29 @@ class DatabaseMigrationTests(unittest.TestCase):
             with engine.connect() as conn:
                 self.assertEqual(conn.execute(text('SELECT '+old_columns+' FROM bill_occurrences')).all(), before)
             command.upgrade(self.config, "head")
+        finally:
+            engine.dispose()
+
+    def test_account_migration_preserves_obligation_fields_and_starts_unassigned(self):
+        command.upgrade(self.config, "0004_bill_subscription_kind")
+        engine = create_database_engine(self.url)
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("INSERT INTO bill_occurrences (id,name,kind,amount_cents,due_date,funding_buffer_days,created_at) VALUES ('old','Example subscription','subscription',1599,'2027-02-01',5,'2026-01-01')"))
+            columns = 'id,name,kind,amount_cents,due_date,funding_buffer_days,created_at'
+            with engine.connect() as conn:
+                before = conn.execute(text('SELECT '+columns+' FROM bill_occurrences')).all()
+            command.upgrade(self.config, 'head')
+            command.upgrade(self.config, 'head')
+            with engine.connect() as conn:
+                self.assertEqual(conn.execute(text('SELECT '+columns+' FROM bill_occurrences')).all(), before)
+                self.assertIsNone(conn.scalar(text('SELECT payment_account_id FROM bill_occurrences')))
+                self.assertEqual(conn.scalar(text('SELECT count(*) FROM payment_accounts')), 0)
+                self.assertEqual(conn.execute(text('PRAGMA foreign_key_check')).all(), [])
+            command.downgrade(self.config, '0004_bill_subscription_kind')
+            with engine.connect() as conn:
+                self.assertEqual(conn.execute(text('SELECT '+columns+' FROM bill_occurrences')).all(), before)
+            command.upgrade(self.config, 'head')
         finally:
             engine.dispose()
 

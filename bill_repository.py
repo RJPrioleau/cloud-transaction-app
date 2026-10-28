@@ -4,9 +4,10 @@ from datetime import date, datetime
 from sqlalchemy import select
 
 from bill_models import BillOccurrence
+from account_models import PaymentAccount
 
 
-def create_bill(session, name, amount_cents, due_date, funding_buffer_days=3, kind="bill"):
+def validate_bill(session, name, amount_cents, due_date, funding_buffer_days, kind, payment_account_id):
     if kind not in ("bill", "subscription"):
         raise ValueError("Choose Bill or Subscription.")
     if not isinstance(name, str) or not name.strip() or len(name.strip()) > 200:
@@ -19,9 +20,24 @@ def create_bill(session, name, amount_cents, due_date, funding_buffer_days=3, ki
         raise ValueError("Funding buffer must be a nonnegative whole number of calendar days.")
     if funding_buffer_days >= due_date.toordinal():
         raise ValueError("Funding buffer places the deadline before the supported calendar.")
+    if payment_account_id is not None and session.get(PaymentAccount, payment_account_id) is None:
+        raise ValueError("Choose an existing payment account, or leave it unassigned.")
+
+
+def create_bill(session, name, amount_cents, due_date, funding_buffer_days=3, kind="bill", payment_account_id=None):
+    validate_bill(session, name, amount_cents, due_date, funding_buffer_days, kind, payment_account_id)
     bill = BillOccurrence(name=name.strip(), amount_cents=amount_cents, due_date=due_date,
-                          funding_buffer_days=funding_buffer_days, kind=kind)
+                          funding_buffer_days=funding_buffer_days, kind=kind, payment_account_id=payment_account_id)
     session.add(bill)
+    session.flush()
+    return bill
+
+
+def update_bill(session, bill, name, amount_cents, due_date, funding_buffer_days=3, kind="bill", payment_account_id=None):
+    validate_bill(session, name, amount_cents, due_date, funding_buffer_days, kind, payment_account_id)
+    bill.name, bill.amount_cents, bill.due_date = name.strip(), amount_cents, due_date
+    bill.funding_buffer_days, bill.kind = funding_buffer_days, kind
+    bill.payment_account_id = payment_account_id
     session.flush()
     return bill
 

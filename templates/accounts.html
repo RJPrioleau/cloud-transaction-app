@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment Accounts</title>
+<style>body {font-family:Arial,sans-serif;max-width:900px;margin:2rem auto;padding:1rem} form {margin:1rem 0} input,button {padding:.5rem} [role=alert] {color:#a00}</style></head>
+<body>
+<a href="{{ url_for('bills.index') }}">Back to bills and subscriptions</a>
+<h1>Payment Accounts</h1>
+<p>Names only. No balances, account numbers, or bank connection. Renaming an account updates its label on every linked obligation.</p>
+{% if unavailable %}<p role="alert">Account database unavailable. Back up your database and run <code>python -m alembic upgrade head</code>, or check the database connection.</p>
+{% else %}
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<h2>Your accounts</h2>
+{% for account in accounts %}
+<form method="post" action="{{ url_for('accounts.index', account_id=account.id) }}">
+<input type="hidden" name="token" value="{{ token }}">
+<label>Account name <input name="name" maxlength="200" required value="{{ values.get('name', '') if renaming == account.id else account.name }}"></label>
+<button type="submit">Rename</button>
+</form>
+{% else %}<p>No payment accounts yet.</p>{% endfor %}
+<h2>Add an account</h2>
+<form method="post" action="{{ url_for('accounts.index') }}">
+<input type="hidden" name="token" value="{{ token }}">
+<label>Account name <input name="name" maxlength="200" required value="{{ values.get('name', '') if not renaming else '' }}"></label>
+<button type="submit">Add account</button>
+</form>
+{% endif %}
+</body></html>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added editing for existing bills/subscriptions and optional named payment accounts. Accounts can be created and renamed; linked obligations retain their references. Edits preserve identity, update classification, and recalculate funding deadlines. Migration preserves existing records with unassigned accounts; added validation, foreign-key, migration, and backup recovery coverage. Subscription lifecycle controls remain separate.
+
 - Added Bill/Subscription classification to obligation entry and separate sections with shared funding-deadline behavior. Migration preserves existing records as Bills; added classification validation, grouping/order, migration-preservation, and backup recovery coverage. No recurring generation is introduced.
 
 - Added manual individual bill-planning records, with exact-cent amounts, due dates, default three-calendar-day funding buffers and per-occurrence overrides. Lists obligations by funding deadline; records do not reserve money or initiate payments. Added migration, validation, persistence, income-preservation, and backup recovery coverage. Real local bill planning approved.
