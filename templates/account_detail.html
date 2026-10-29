@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ account.name }} — Account details</title>
+<style>body{font-family:Arial,sans-serif;max-width:1000px;margin:2rem auto;padding:1rem}label{display:block;margin:1rem 0}input:not([type=checkbox]),select{display:block;padding:.5rem}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.7rem;border-bottom:1px solid #ccc}[role=alert]{color:#a00}</style>
+</head><body>
+<a href="{{ url_for('accounts.index') }}">Back to accounts and vaults</a>
+<h1>{{ account.name }}</h1>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+{% if history %}<h2>Recorded balance: ${{ net_amount_text(history[0].amount_cents) }}</h2><p>As of {{ history[0].balance_date }}. This is a recorded balance, not an available-to-spend calculation.</p>{% else %}<p>Balance not recorded. This does not mean zero.</p>{% endif %}
+<h2>Name, type, and purpose</h2>
+<p>Renaming keeps this account's bill links and balance history. Each vault's money has its own purpose; do not include it in another account's recorded balance.</p>
+{% set details = values if values.get('action') == 'details' else {} %}
+<form method="post"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="action" value="details">
+<label>Name <input name="name" maxlength="200" value="{{ details.get('name', account.name) }}" required></label>
+<label>Type <select name="kind">{% for kind,label in [('account','Account'),('vault','Vault')] %}<option value="{{ kind }}" {% if details.get('kind', account.kind) == kind %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>Purpose (required for a vault) <input name="purpose" maxlength="200" value="{{ details.get('purpose', account.purpose or '') }}"></label>
+<button type="submit">Save details</button></form>
+<h2>Record a balance or correction</h2>
+<p>Enter the full amount held here, not an amount to add or subtract. Previous entries stay in history. The newest balance date is shown above; for corrections on the same date, the latest saved entry wins. A backdated entry does not replace a balance recorded for a later date.</p>
+{% set balance_values = values if values.get('action') == 'balance' else {} %}
+<form method="post"><input type="hidden" name="token" value="{{ token }}"><input type="hidden" name="action" value="balance">
+<label>Balance ($) <input name="balance" inputmode="decimal" value="{{ balance_values.get('balance','') }}" required></label>
+<label>As of <input type="date" name="balance_date" max="{{ today }}" value="{{ balance_values.get('balance_date', today) }}" required></label>
+<label>Note (optional) <input name="note" maxlength="200" value="{{ balance_values.get('note','') }}"></label>
+<label><input type="checkbox" name="confirm_balance" value="yes" required {% if balance_values.get('confirm_balance') == 'yes' %}checked{% endif %}> I confirm this balance is the amount held here on that date.</label>
+<button type="submit">Record balance</button></form>
+<h2>Balance history</h2>
+<table><thead><tr><th>As of</th><th>Balance</th><th>Note</th><th>Recorded at (UTC)</th></tr></thead><tbody>
+{% for balance in history %}<tr><td>{{ balance.balance_date }}</td><td>${{ net_amount_text(balance.amount_cents) }}</td><td>{{ balance.note or '—' }}</td><td>{{ balance.created_at }}</td></tr>{% else %}<tr><td colspan="4">No recorded balances.</td></tr>{% endfor %}
+</tbody></table>
+</body></html>

@@ -53,7 +53,7 @@ class DatabaseMigrationTests(unittest.TestCase):
         engine = create_database_engine(self.url)
         try:
             self.assertEqual(set(inspect(engine).get_table_names()), {
-                "alembic_version", "income_sources", "official_pay_dates", "bill_occurrences", "payment_accounts", "subscription_changes", "subscription_schedules", "bill_schedules",
+                "alembic_version", "income_sources", "official_pay_dates", "bill_occurrences", "payment_accounts", "subscription_changes", "subscription_schedules", "bill_schedules", "account_balances",
             })
             self.assertEqual(
                 {c["name"] for c in inspect(engine).get_columns("official_pay_dates")},
@@ -172,7 +172,7 @@ class DatabaseMigrationTests(unittest.TestCase):
             with restored.connect() as connection:
                 self.assertEqual(connection.scalar(text("PRAGMA integrity_check")), "ok")
                 self.assertEqual(connection.execute(text("PRAGMA foreign_key_check")).all(), [])
-                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0008_monthly_bills")
+                self.assertEqual(connection.scalar(text("SELECT version_num FROM alembic_version")), "0009_account_balances")
         finally:
             restored.dispose()
 

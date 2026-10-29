@@ -199,7 +199,7 @@ class MonthlyBillTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             command.downgrade(self.config, '0007_subscription_schedules')
         with self.engine.connect() as conn:
-            self.assertEqual(conn.scalar(text('SELECT version_num FROM alembic_version')), '0008_monthly_bills')
+            self.assertEqual(conn.scalar(text('SELECT version_num FROM alembic_version')), '0009_account_balances')
 
     def test_migration_preserves_old_columns_and_starts_unconfirmed(self):
         command.downgrade(self.config, '0007_subscription_schedules')

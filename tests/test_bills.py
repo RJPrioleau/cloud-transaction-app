@@ -201,6 +201,9 @@ class BillTests(unittest.TestCase):
             self.assertEqual(account.name, 'Original')
         self.post(payment_account_id=account.id)
         self.post(name='Other obligation', payment_account_id=account.id)
+        self.client.get('/accounts')
+        with self.client.session_transaction() as cookie:
+            token = cookie['account_form_token']
         self.assertEqual(self.client.post(f'/accounts/{account.id}/rename', data={'token': token, 'name': '<New name>'}).status_code, 303)
         html = self.make_app().test_client().get('/bills').data
         self.assertEqual(html.count(b'&lt;New name&gt;'), 3)  # two rows plus the selector

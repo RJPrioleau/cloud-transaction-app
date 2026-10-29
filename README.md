@@ -85,6 +85,14 @@ python -m py_compile app.py transaction_processor.py tests\test_transaction_proc
 
 ## Local Planning Features
 
+## Accounts, Vaults, and Recorded Balances
+
+Open **Manage payment accounts** from Bill planning, or visit `/accounts`. Existing names remain linked to their bills. Add an **Account** or **Vault**, enter its purpose (required for a vault), and optionally record its balance and as-of date. Enter each vault separately; exclude its funds from other account balances so the same money is not counted twice. Blank balance means **Not recorded**, while zero is an explicit balance.
+
+Use **Details / balance history** to rename an entry, change its type/purpose, or record another balance/correction. Enter the full balance, not an amount to add/subtract. Entries remain in history; the newest date wins, with the latest saved entry correcting the same date. Future-dated or negative balances are rejected. Names, purposes, and balances are private local records; they do not transfer on Git pull.
+
+These are manual recorded balances, not bank-synced or available-to-spend amounts. Transfers, protected-fund enforcement, bill set-asides, releases/overrides, import matching, and paycheck funding recommendations come in subsequent slices. Migration `0009_account_balances` preserves existing records and leaves balances unknown; back up before migrating and recover from a verified backup rather than discarding populated balance history with a downgrade.
+
 ## Manual Bills and Subscriptions
 
 For regular Bills, choose **Monthly** when adding a new entry, or **Enable monthly bill** beside an existing one. Enter a starting estimate once. The selected 1–365 day forecast generates separate monthly charges without duplicates, using the same original-day/month-end rule as subscriptions. Existing Bills stay one-time until you explicitly enroll them.
@@ -113,7 +121,7 @@ Migration `0006_subscription_controls` preserves all existing fields, labeling e
 
 Use **Edit** beside an obligation to correct its name, type, amount, due date, funding buffer, or payment account. Saving updates the same ID and creation timestamp, recalculates its funding deadline, and moves it between Bills and Subscriptions when its type changes. Cancel returns without changes. Edit history and deletion are not implemented yet.
 
-**Manage payment accounts** opens `/accounts`, where you can add names you choose and rename them later. Obligations reference an account ID, so renaming updates every linked label. Select an account when adding or editing a bill; **Unassigned** is allowed and clears the reference. Accounts have no balances, credentials, or bank connection. Duplicate names are not automatically merged. Migration `0005_payment_accounts` preserves existing obligations and leaves their account unassigned. Back up before migrating; downgrading removes account records and assignments. Subscription controls are available through Subscription settings, as described above.
+**Manage payment accounts** opens `/accounts`, where you can add names you choose and rename them later. Obligations reference an account ID, so renaming updates every linked label. Select an account when adding or editing a bill; **Unassigned** is allowed and clears the reference. Accounts now support manual dated balances and vault purposes as described above; they have no credentials or bank connection. Duplicate names are not automatically merged. Migration `0005_payment_accounts` preserves existing obligations and leaves their account unassigned. Back up before migrating; downgrading removes account records and assignments. Subscription controls are available through Subscription settings, as described above.
 
 Select **Bill** or **Subscription** when adding an occurrence. Both types share the same amounts and funding rules, but appear in separate sections, each ordered by funding deadline. Existing records become Bills under migration `0004_bill_subscription_kind`; no existing amounts, dates, IDs, or buffers are changed. The classification is not a recurring schedule and does not create future occurrences. Reclassification is now available through Edit. Downgrading this migration preserves obligations but removes their type labels.
 

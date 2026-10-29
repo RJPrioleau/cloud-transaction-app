@@ -1,28 +1,34 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Payment Accounts</title>
-<style>body {font-family:Arial,sans-serif;max-width:900px;margin:2rem auto;padding:1rem} form {margin:1rem 0} input,button {padding:.5rem} [role=alert] {color:#a00}</style></head>
+<title>Accounts and Vaults</title>
+<style>body {font-family:Arial,sans-serif;max-width:1050px;margin:2rem auto;padding:1rem} form {margin:1rem 0} label {display:block;margin:1rem 0} input:not([type=checkbox]),select {display:block;padding:.5rem} button {padding:.5rem} table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.7rem;border-bottom:1px solid #ccc}[role=alert] {color:#a00}</style></head>
 <body>
 <a href="{{ url_for('bills.index') }}">Back to bills and subscriptions</a>
-<h1>Payment Accounts</h1>
-<p>Names only. No balances, account numbers, or bank connection. Renaming an account updates its label on every linked obligation.</p>
+<h1>Accounts and Vaults</h1>
+<p>Record each account and vault separately. Do not include vault money again in another account's balance. These are manual balance records, not a bank connection.</p>
+<p>Vault purposes are recorded here. Transfers, bill set-asides, and available-to-spend calculations will be added in a later step.</p>
 {% if unavailable %}<p role="alert">Account database unavailable. Back up your database and run <code>python -m alembic upgrade head</code>, or check the database connection.</p>
 {% else %}
 {% if error %}<p role="alert">{{ error }}</p>{% endif %}
-<h2>Your accounts</h2>
+<h2>Your accounts and vaults</h2>
+<table><thead><tr><th>Name</th><th>Type</th><th>Purpose</th><th>Recorded balance</th><th>As of</th><th>Action</th></tr></thead><tbody>
 {% for account in accounts %}
-<form method="post" action="{{ url_for('accounts.index', account_id=account.id) }}">
-<input type="hidden" name="token" value="{{ token }}">
-<label>Account name <input name="name" maxlength="200" required value="{{ values.get('name', '') if renaming == account.id else account.name }}"></label>
-<button type="submit">Rename</button>
-</form>
-{% else %}<p>No payment accounts yet.</p>{% endfor %}
-<h2>Add an account</h2>
+{% set balance = balances.get(account.id) %}
+<tr><td>{{ account.name }}</td><td>{{ account.kind | capitalize }}</td><td>{{ account.purpose or 'Not specified' }}</td><td>{{ '$' + net_amount_text(balance.amount_cents) if balance else 'Not recorded' }}</td><td>{{ balance.balance_date if balance else '—' }}</td><td><a href="{{ url_for('accounts.detail', account_id=account.id) }}">Details / balance history</a></td></tr>
+{% else %}<tr><td colspan="6">No accounts or vaults yet.</td></tr>{% endfor %}
+</tbody></table>
+<h2>Add an account or vault</h2>
 <form method="post" action="{{ url_for('accounts.index') }}">
 <input type="hidden" name="token" value="{{ token }}">
-<label>Account name <input name="name" maxlength="200" required value="{{ values.get('name', '') if not renaming else '' }}"></label>
-<button type="submit">Add account</button>
+<label>Name <input name="name" maxlength="200" required value="{{ values.get('name', '') if not renaming else '' }}"></label>
+<label>Type <select name="kind"><option value="account" {% if values.get('kind', 'account') == 'account' %}selected{% endif %}>Account</option><option value="vault" {% if values.get('kind') == 'vault' %}selected{% endif %}>Vault</option></select></label>
+<label>Purpose (required for a vault) <input name="purpose" maxlength="200" value="{{ values.get('purpose','') }}" placeholder="Emergency savings, car insurance, etc."></label>
+<label>Balance ($, optional) <input name="balance" inputmode="decimal" value="{{ values.get('balance','') }}" placeholder="Leave blank if not yet known"></label>
+<label>Balance as of <input type="date" name="balance_date" max="{{ today }}" value="{{ values.get('balance_date', today) }}"></label>
+<label>Balance note (optional) <input name="note" maxlength="200" value="{{ values.get('note','') }}"></label>
+<label><input type="checkbox" name="confirm_balance" value="yes" {% if values.get('confirm_balance') == 'yes' %}checked{% endif %}> If entering a balance, I confirm it is the amount held in this account or vault on that date.</label>
+<button type="submit">Add account or vault</button>
 </form>
 {% endif %}
 </body></html>

@@ -8,6 +8,10 @@ Product direction: expected incoming/outgoing amounts and timing, with later APR
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+- [x] Add account/vault names, types, purposes, confirmed dated balance snapshots, corrections/history, and migration preservation. User approved this focused setup slice before session end; real data stays local/ignored.
+- [ ] Finish the approved balance foundation: enforce purpose protection, record confirmed From/To/Amount/Date transfers atomically, add in-account bill set-asides and explicit releases/overrides with preserved action history and separate balance/protected/available figures. Approach approved; detailed transfer/commitment storage and UI remain the next design task. See `docs/PRODUCT.md`.
+- [ ] Later, separately scoped: confirm imported-transfer matches without double counting; use effective-dated roundup destinations; build all-income funding recommendations aiming for steady dollars left per paycheck. Detailed workflows/algorithms are not approved for implementation in the manual-balance slice.
+
 - [x] Add approved monthly Bill recurrence and estimates based on confirmed amounts from the previous three calendar months, with a manual starting-estimate fallback, per-month confirmation, and recalculation of future unconfirmed charges. Existing entries opt in explicitly. Implemented and approved for commit on 2026-10-29; 129 tests and live-response checks passed. Explicit user visual acceptance is not yet recorded. See `docs/PRODUCT.md`.
 
 - [x] Add approved obligation editing and named payment-account creation/renaming, optional account assignment, identity preservation, and migration/recovery coverage.
