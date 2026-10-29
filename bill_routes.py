@@ -8,6 +8,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from bill_repository import create_bill, update_bill, list_bills, set_subscription_state
 from bill_models import BillOccurrence, SubscriptionSchedule
 from subscription_repository import configure_schedule
+from monthly_bill_repository import enable_monthly_bill, confirm_month_amount, amount_basis_text
+from bill_models import BillSchedule
 from sqlalchemy import select
 from account_repository import list_accounts
 from database import create_database_engine, session_scope
@@ -54,7 +56,12 @@ def index(bill_id=None):
                         created = create_bill(db, **fields)
                         recurrence = request.form.get("recurrence", "once")
                         if recurrence != "once":
-                            configure_schedule(db, created, recurrence, amount, due, confirmed=True)
+                            if created.kind == "bill":
+                                if recurrence != "monthly":
+                                    raise ValueError("Bills support Monthly or One-time recurrence.")
+                                enable_monthly_bill(db, created, amount, confirmed=True)
+                            else:
+                                configure_schedule(db, created, recurrence, amount, due, confirmed=True)
                 else:
                     records = list_bills(db)
                     accounts = list_accounts(db)
@@ -79,9 +86,65 @@ def index(bill_id=None):
                                values=values, editing=editing, accounts=accounts,
                                covering_bills={r.id: r.name for r in records if r.kind == "bill"},
                                schedules=schedules, representatives=representatives,
+                               amount_basis_text=amount_basis_text,
                                net_amount_text=net_amount_text), status
     except SQLAlchemyError:
         current_app.logger.exception("Bill database unavailable")
+        return render_template("bills.html", unavailable=True), 503
+    finally:
+        engine.dispose()
+
+
+@bills.route("/bills/<bill_id>/monthly", methods=["GET", "POST"])
+def monthly(bill_id):
+    token_key = "monthly_bill_token_" + bill_id
+    token = session.setdefault(token_key, secrets.token_urlsafe(32))
+    if request.method == "POST" and not secrets.compare_digest(token, request.form.get("token", "")):
+        return "Form expired. Reopen monthly bill history.", 400
+    engine = create_database_engine(current_app.config.get("DATABASE_URL"))
+    error, status = None, 200
+    try:
+        try:
+            with session_scope(engine) as db:
+                record = db.get(BillOccurrence, bill_id)
+                if record is None or record.kind != "bill":
+                    abort(404)
+                saved = db.get(BillSchedule, record.bill_schedule_id) if record.bill_schedule_id else None
+                if request.method == "POST":
+                    if saved is None:
+                        enable_monthly_bill(db, record, parse_net_cents(request.form.get("starting_estimate", "")),
+                                            confirmed=request.form.get("confirm") == "yes")
+                    else:
+                        raw_month = request.form.get("month", "")
+                        if len(raw_month) != 7:
+                            raise ValueError("Choose a billing month (YYYY-MM).")
+                        try:
+                            month = date.fromisoformat(raw_month + "-01")
+                        except ValueError:
+                            raise ValueError("Choose a valid billing month (YYYY-MM).") from None
+                        confirm_month_amount(db, saved, month, parse_net_cents(request.form.get("amount", "")),
+                                             confirmed=request.form.get("confirm") == "yes",
+                                             existing_bill_id=request.form.get("existing_bill_id") or None)
+            if request.method == "POST":
+                session.pop(token_key, None)
+                return redirect(url_for("bills.monthly", bill_id=bill_id), code=303)
+        except ValueError as invalid:
+            error, status = str(invalid), 400
+        with session_scope(engine) as db:
+            record = db.get(BillOccurrence, bill_id)
+            saved = db.get(BillSchedule, record.bill_schedule_id) if record.bill_schedule_id else None
+            charges = list(db.scalars(select(BillOccurrence).where(
+                BillOccurrence.bill_schedule_id == saved.id).order_by(BillOccurrence.bill_month))) if saved else []
+            unlinked = list(db.scalars(select(BillOccurrence).where(
+                BillOccurrence.kind == "bill", BillOccurrence.bill_schedule_id.is_(None)
+            ).order_by(BillOccurrence.due_date, BillOccurrence.name))) if saved else []
+        values = request.form if request.method == "POST" else dict(
+            starting_estimate=net_amount_text(record.amount_cents), month=date.today().strftime("%Y-%m"))
+        return render_template("monthly_bill.html", record=record, saved=saved, charges=charges,
+                               unlinked=unlinked, values=values, token=token, error=error,
+                               net_amount_text=net_amount_text, amount_basis_text=amount_basis_text), status
+    except SQLAlchemyError:
+        current_app.logger.exception("Monthly bill database unavailable")
         return render_template("bills.html", unavailable=True), 503
     finally:
         engine.dispose()

@@ -35,6 +35,8 @@ def create_bill(session, name, amount_cents, due_date, funding_buffer_days=3, ki
 
 
 def update_bill(session, bill, name, amount_cents, due_date, funding_buffer_days=3, kind="bill", payment_account_id=None):
+    if bill.bill_schedule_id:
+        raise ValueError("Use Monthly history to confirm a monthly bill's amount. Existing charge dates and identity are preserved.")
     if bill.subscription_schedule_id:
         raise ValueError("Use Recurrence settings to change this subscription's future planning. Existing charge records are preserved.")
     validate_bill(session, name, amount_cents, due_date, funding_buffer_days, kind, payment_account_id)

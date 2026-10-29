@@ -1,5 +1,4 @@
 """Recurring planning defaults and distinct, idempotent charge occurrences."""
-import calendar
 from datetime import date, timedelta
 import json
 
@@ -7,29 +6,10 @@ from sqlalchemy import select
 
 from bill_models import BillOccurrence, SubscriptionChange, SubscriptionSchedule
 from bill_repository import create_bill, validate_bill
+from recurring_dates import scheduled_dates
+from monthly_bill_repository import materialize_monthly_bills
 
 _UNSET = object()
-
-
-def scheduled_dates(anchor, frequency, start, end):
-    """Yield dates in [start, end), always calculated from the original anchor."""
-    if frequency not in ("monthly", "yearly"):
-        raise ValueError("Choose Monthly or Yearly recurrence.")
-    step = 1 if frequency == "monthly" else 12
-    first_month = anchor.year * 12 + anchor.month - 1
-    start_month = start.year * 12 + start.month - 1
-    index = max(0, (start_month - first_month) // step)
-    while True:
-        year, month = divmod(first_month + index * step, 12)
-        month += 1
-        if year > 9999:
-            return
-        day = date(year, month, min(anchor.day, calendar.monthrange(year, month)[1]))
-        if day >= end:
-            return
-        if day >= start:
-            yield day
-        index += 1
 
 
 def schedule_snapshot(schedule):
@@ -119,6 +99,7 @@ def materialize_subscriptions(session, start, days):
 def outgoing_forecast(session, start, days):
     """Persist missing active charges, then total only owed amounts in the window."""
     materialize_subscriptions(session, start, days)
+    materialize_monthly_bills(session, start, days)
     rows = list(session.scalars(select(BillOccurrence).where(
         BillOccurrence.due_date >= start, BillOccurrence.due_date < start + timedelta(days=days)
     ).order_by(BillOccurrence.due_date, BillOccurrence.name, BillOccurrence.id)))

@@ -19,6 +19,10 @@ class BillOccurrence(Base):
         CheckConstraint("subscription_state IN ('active','inactive','covered')", name="ck_bills_subscription_state"),
         CheckConstraint("(subscription_state = 'covered' AND (covered_by_bill_id IS NOT NULL OR length(trim(coalesce(coverage_label, ''))) > 0)) OR (subscription_state != 'covered' AND covered_by_bill_id IS NULL AND coverage_label IS NULL)", name="ck_bills_coverage_link"),
         UniqueConstraint("subscription_schedule_id", "due_date", name="uq_subscription_charge_date"),
+        UniqueConstraint("bill_schedule_id", "bill_month", name="uq_bill_schedule_month"),
+        CheckConstraint("(bill_schedule_id IS NULL AND bill_month IS NULL) OR (bill_schedule_id IS NOT NULL AND bill_month IS NOT NULL AND kind = 'bill' AND subscription_schedule_id IS NULL)", name="ck_bill_schedule_link"),
+        CheckConstraint("amount_basis IS NULL OR amount_basis IN ('starting','history_1','history_2','history_3','confirmed')", name="ck_bill_amount_basis"),
+        CheckConstraint("(amount_confirmed_at IS NULL AND (amount_basis IS NULL OR amount_basis != 'confirmed')) OR (amount_confirmed_at IS NOT NULL AND coalesce(amount_basis, '') = 'confirmed')", name="ck_bill_confirmation"),
         CheckConstraint("covered_by_bill_id IS NULL OR covered_by_bill_id != id", name="ck_bills_no_self_coverage"),
         CheckConstraint("subscription_state != 'active' OR charge_is_owed = true", name="ck_bills_active_charge"),
         CheckConstraint("kind = 'subscription' OR subscription_state = 'active'", name="ck_bills_regular_active"),
@@ -32,6 +36,10 @@ class BillOccurrence(Base):
     covered_by_bill_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("bill_occurrences.id", name="fk_bills_coverage", ondelete="RESTRICT"))
     coverage_label: Mapped[str | None] = mapped_column(String(200))
     subscription_schedule_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("subscription_schedules.id", ondelete="RESTRICT"))
+    bill_schedule_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("bill_schedules.id", ondelete="RESTRICT"))
+    bill_month: Mapped[date | None] = mapped_column(Date)
+    amount_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    amount_basis: Mapped[str | None] = mapped_column(String(16))
     payment_account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("payment_accounts.id", ondelete="RESTRICT"))
     payment_account: Mapped[PaymentAccount | None] = relationship(lazy="selectin")
     amount_cents: Mapped[int] = mapped_column(BigInteger)
@@ -81,4 +89,20 @@ class SubscriptionSchedule(Base):
     state: Mapped[str] = mapped_column(String(16), default="active")
     covered_by_bill_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("bill_occurrences.id", ondelete="RESTRICT", use_alter=True))
     coverage_label: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+
+class BillSchedule(Base):
+    __tablename__ = "bill_schedules"
+    __table_args__ = (
+        CheckConstraint("length(trim(name)) > 0", name="ck_monthly_bill_name"),
+        CheckConstraint("starting_estimate_cents >= 0", name="ck_monthly_bill_amount"),
+        CheckConstraint("funding_buffer_days >= 0", name="ck_monthly_bill_buffer"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(200))
+    anchor_date: Mapped[date] = mapped_column(Date)
+    starting_estimate_cents: Mapped[int] = mapped_column(BigInteger)
+    funding_buffer_days: Mapped[int] = mapped_column(Integer)
+    payment_account_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("payment_accounts.id", ondelete="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))

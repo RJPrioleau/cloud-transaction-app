@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monthly bill history</title>
+<style>body{font-family:Arial,sans-serif;max-width:1000px;margin:2rem auto;padding:1rem}label{display:block;margin:1rem 0}input:not([type=checkbox]),select{display:block;padding:.5rem}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.7rem;border-bottom:1px solid #ccc}[role=alert]{color:#a00}</style>
+</head><body>
+<nav><a href="{{ url_for('bills.index') }}">Bills and subscriptions</a> | <a href="{{ url_for('income.forecast') }}">Incoming and outgoing forecast</a></nav>
+<h1>{{ 'Monthly history: ' + saved.name if saved else 'Enable monthly bill: ' + record.name }}</h1>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+{% if not saved %}
+<p>This bill will repeat monthly from {{ record.due_date }}, retaining its original day where possible. Existing charges are not automatically confirmed. Future charges appear within your selected forecast horizon.</p>
+<form method="post"><input type="hidden" name="token" value="{{ token }}">
+<label>Starting estimate ($) <input name="starting_estimate" inputmode="decimal" value="{{ values.get('starting_estimate','') }}" required></label>
+<label><input type="checkbox" name="confirm" value="yes" required {% if values.get('confirm') == 'yes' %}checked{% endif %}> Enable monthly recurrence using this starting estimate when no confirmed amounts exist in the previous three calendar months.</label>
+<button type="submit">Enable monthly bill</button></form>
+{% else %}
+<p>Monthly from {{ saved.anchor_date }}. Starting estimate: ${{ net_amount_text(saved.starting_estimate_cents) }}. Buffer: {{ saved.funding_buffer_days }} calendar day(s).</p>
+<p>Each estimate uses confirmed amounts from that bill's previous three calendar months, rounded to the nearest cent (half up). Missing months are excluded; if none are confirmed, the starting estimate is used. Estimates never feed back into the average.</p>
+<table><thead><tr><th>Month</th><th>Due date</th><th>Amount</th><th>Basis</th><th>Confirmed at (UTC)</th></tr></thead><tbody>
+{% for charge in charges %}<tr><td>{{ charge.bill_month.strftime('%Y-%m') }}</td><td>{{ charge.due_date }}</td><td>${{ net_amount_text(charge.amount_cents) }}</td><td>{{ amount_basis_text(charge) }}</td><td>{{ charge.amount_confirmed_at or 'Not confirmed' }}</td></tr>
+{% else %}<tr><td colspan="5">No charges recorded.</td></tr>{% endfor %}</tbody></table>
+<h2>Confirm or correct a month's accurate amount</h2>
+<p>You may enter past amounts as history. This updates that month's charge and recalculates future unconfirmed estimates. Other confirmed amounts and unconfirmed charges due today or earlier stay unchanged. Confirmation does not mark a bill paid or initiate payment.</p>
+<form method="post"><input type="hidden" name="token" value="{{ token }}">
+<label>Billing month <input type="month" name="month" value="{{ values.get('month','') }}" required></label>
+<label>Accurate amount ($) <input name="amount" inputmode="decimal" value="{{ values.get('amount','') }}" required></label>
+<label>Use an existing one-time Bill (optional) <select name="existing_bill_id"><option value="">Use this schedule's charge, or create its historical charge</option>{% for bill in unlinked %}<option value="{{ bill.id }}" {% if values.get('existing_bill_id') == bill.id %}selected{% endif %}>{{ bill.due_date }} — {{ bill.name }} — ${{ net_amount_text(bill.amount_cents) }}</option>{% endfor %}</select></label>
+<p>Select an existing entry only if it is this same bill and billing month. The app never guesses from names or merges two existing charges.</p>
+<label><input type="checkbox" name="confirm" value="yes" required {% if values.get('confirm') == 'yes' %}checked{% endif %}> I confirm this month's amount is accurate. This is not payment confirmation.</label>
+<button type="submit">Confirm monthly amount</button></form>
+{% endif %}
+</body></html>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added opt-in monthly Bills, starting-estimate fallback, and per-month accurate-amount confirmation. Estimates average only confirmed values from the previous three calendar months, using integer cents with half-up rounding. Confirmation updates future unconfirmed estimates atomically without altering other confirmed amounts or charges due today/earlier. Added explicit historical-entry linking, amount-basis labels, forecast integration, month uniqueness, shared date anchoring, migration/recovery and rollback coverage. Confirmation is separate from payment status; existing records remain unenrolled/unconfirmed.
+
 - Added opt-in monthly/yearly subscription schedules, distinct saved charges within the selected 1–365 day forecast, month-end/leap-year anchoring, and schedule/date uniqueness. Amount/status changes affect only dates after today; inactive/covered schedules remain visible without future separate funding. Added external coverage labels and separate subscription sections, outgoing forecast totals, migration preservation, transactional SQLite table rebuilds, and recurrence/recovery tests. Existing subscriptions remain one-time until explicitly enabled.
 
 - Added subscription Active/Inactive/Covered controls with explicit unpaid-charge responsibility, reference-only placeholders, coverage links, and confirmed amount/date on activation. Retains old unpaid occurrences when creating a newly confirmed charge; prevents repeated creation for the same next date. Added transactional status history, migration-preservation, and recovery coverage. Existing entries remain Active/owed until explicitly classified.

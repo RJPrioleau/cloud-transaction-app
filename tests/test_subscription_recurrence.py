@@ -156,7 +156,7 @@ class SubscriptionRecurrenceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             command.downgrade(self.config, '0006_subscription_controls')
         with self.engine.connect() as conn:
-            self.assertEqual(conn.scalar(text('SELECT version_num FROM alembic_version')), '0007_subscription_schedules')
+            self.assertEqual(conn.scalar(text('SELECT version_num FROM alembic_version')), '0008_monthly_bills')
             self.assertEqual(conn.scalar(text('SELECT count(*) FROM bill_occurrences')), 12)
 
     def test_new_subscription_entry_can_enable_yearly_recurrence_and_reject_regular_bill(self):

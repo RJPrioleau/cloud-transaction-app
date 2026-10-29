@@ -8,6 +8,8 @@ Product direction: expected incoming/outgoing amounts and timing, with later APR
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
+- [x] Add approved monthly Bill recurrence and estimates based on confirmed amounts from the previous three calendar months, with a manual starting-estimate fallback, per-month confirmation, and recalculation of future unconfirmed charges. Existing entries opt in explicitly. Implemented and approved for commit on 2026-10-29; 129 tests and live-response checks passed. Explicit user visual acceptance is not yet recorded. See `docs/PRODUCT.md`.
+
 - [x] Add approved obligation editing and named payment-account creation/renaming, optional account assignment, identity preservation, and migration/recovery coverage.
 - [x] Add approved subscription inactive/covered behavior, explicit owed-versus-placeholder decisions, coverage links, confirmed reactivation, retained unpaid occurrences, and private confirmation history.
 
