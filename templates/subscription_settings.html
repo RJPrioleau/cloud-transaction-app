@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscription Settings</title>
+<style>body {font-family:Arial,sans-serif;max-width:850px;margin:2rem auto;padding:1rem} label {display:block;margin:1rem 0} input:not([type=checkbox]),select {display:block;padding:.5rem} button {padding:.6rem} [role=alert] {color:#a00}</style>
+</head><body>
+<a href="{{ url_for('bills.index') }}">Back to bills and subscriptions</a>
+<h1>Subscription settings: {{ record.name }}</h1>
+<p>Inactive stops future planning for this entry. It does not cancel anything with a provider. Covered means future charges are included in another bill. Any separate unpaid charge remains owed unless you explicitly confirm that the recorded date is only a placeholder or included charge.</p>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<label>Status <select name="state" required>
+{% for value, label in [('active','Active'),('inactive','Inactive / paused'),('covered','Covered by another bill')] %}
+<option value="{{ value }}" {% if values.get('state') == value %}selected{% endif %}>{{ label }}</option>
+{% endfor %}</select></label>
+<fieldset><legend>When choosing Inactive or Covered</legend>
+<label>Is the recorded charge actually owed? <select name="charge_responsibility">
+<option value="owed" {% if values.get('charge_responsibility') == 'owed' %}selected{% endif %}>Yes — keep the recorded charge owed</option>
+<option value="not_owed" {% if values.get('charge_responsibility') == 'not_owed' %}selected{% endif %}>No — only a placeholder or included charge</option>
+</select></label>
+<label><input type="checkbox" name="confirm_no_charge" value="yes" {% if values.get('confirm_no_charge') == 'yes' %}checked{% endif %}> I confirm there is no separate unpaid charge for this recorded occurrence. Exclude it from funding needs.</label>
+<label>Covered by (person or provider) <input name="coverage_label" maxlength="200" placeholder="Girlfriend, T-Mobile, etc." value="{{ values.get('coverage_label', '') }}"></label>
+<label>Covering bill (optional when a coverage label is supplied) <select name="covered_by_bill_id">
+<option value="">Choose a bill</option>
+{% for parent in parents %}<option value="{{ parent.id }}" {% if values.get('covered_by_bill_id') == parent.id %}selected{% endif %}>{{ parent.name }}</option>{% endfor %}
+</select></label>
+</fieldset>
+<fieldset><legend>When choosing Active — confirm the next charge</legend>
+<label>Amount ($) <input name="amount" inputmode="decimal" value="{{ values.get('amount', '') }}"></label>
+<label>Next charge date <input type="date" name="due_date" value="{{ values.get('due_date', '') }}"></label>
+<label><input type="checkbox" name="confirm_activation" value="yes" {% if values.get('confirm_activation') == 'yes' %}checked{% endif %}> I confirm this amount and next charge date.</label>
+<p>If this inactive/covered entry still has an unpaid charge, that occurrence is retained and a separate active occurrence is created for the new, later charge date. Otherwise this entry is reactivated in place. No recurring schedule or bank payment is created.</p>
+</fieldset>
+<button type="submit">Save subscription settings</button> <a href="{{ url_for('bills.index') }}">Cancel</a>
+</form></body></html>

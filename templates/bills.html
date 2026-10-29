@@ -24,28 +24,44 @@
 {% else %}
 {% if error %}<p role="alert">{{ error }}</p>{% endif %}
 {% if not editing %}
-<p>Both sections use the same funding rules and are sorted by earliest funding deadline, including past dates. Recording an obligation does not mark it funded or paid.</p>
-{% for kind, heading in [('bill', 'Bills'), ('subscription', 'Subscriptions')] %}
+<p><a href="{{ url_for('income.forecast') }}">View incoming and outgoing forecast / choose horizon</a></p>
+{% for covered, heading in [(false, 'Recurring subscriptions I pay for'), (true, 'Recurring subscriptions covered by someone or something else')] %}
+<h2>{{ heading }}</h2>
+<table><thead><tr><th>Subscription</th><th>Recurrence</th><th>Amount per charge</th><th>Status / coverage</th><th>Action</th></tr></thead><tbody>
+{% for schedule in schedules if (schedule.state == 'covered') == covered %}
+<tr><td>{{ schedule.name }}</td><td>{{ schedule.frequency | capitalize }}</td><td>${{ net_amount_text(schedule.amount_cents) }}</td><td>{{ schedule.state | capitalize }}{% if covered %} — {{ schedule.coverage_label or covering_bills.get(schedule.covered_by_bill_id, 'linked bill') }}{% endif %}</td><td><a href="{{ url_for('bills.recurrence', bill_id=representatives[schedule.id]) }}">Recurrence settings</a></td></tr>
+{% else %}<tr><td colspan="5">No recurring subscriptions in this section.</td></tr>{% endfor %}
+</tbody></table>
+{% endfor %}
+<p>Charge sections show owed charges first, sorted by earliest funding deadline, including past dates. Reference-only entries follow. Recording an obligation does not mark it funded or paid.</p>
+{% for kind, heading in [('bill', 'Bills'), ('subscription', 'Subscriptions I pay for — charge records'), ('covered', 'Subscriptions covered by someone or something else — charge records')] %}
 <section aria-labelledby="{{ kind }}-heading">
 <h2 id="{{ kind }}-heading">{{ heading }}</h2>
 <table>
-<thead><tr><th scope="col">Name</th><th scope="col">Amount due</th><th scope="col">Due date</th><th scope="col">Funding deadline</th><th scope="col">Buffer</th><th scope="col">Payment account</th><th scope="col">Action</th></tr></thead>
+<thead><tr><th scope="col">Name / status</th><th scope="col">Recorded amount</th><th scope="col">Due / reference date</th><th scope="col">Funding deadline</th><th scope="col">Funding needed</th><th scope="col">Payment account</th><th scope="col">Action</th></tr></thead>
 <tbody>
-{% for bill in bills | selectattr('kind', 'equalto', kind) %}
-<tr><td>{{ bill.name }}</td><td>${{ net_amount_text(bill.amount_cents) }}</td><td>{{ bill.due_date }}</td><td>{{ bill.funding_deadline }}</td><td>{{ bill.funding_buffer_days }} calendar day(s)</td><td>{{ bill.payment_account.name if bill.payment_account else 'Unassigned' }}</td><td><a href="{{ url_for('bills.index', bill_id=bill.id) }}">Edit</a></td></tr>
+{% for bill in bills if (kind == 'bill' and bill.kind == 'bill') or (kind == 'subscription' and bill.kind == 'subscription' and bill.subscription_state != 'covered') or (kind == 'covered' and bill.kind == 'subscription' and bill.subscription_state == 'covered') %}
+<tr><td>{{ bill.name }}{% if bill.kind == 'subscription' %}<br>{{ {'active':'Active', 'inactive':'Inactive / paused', 'covered':'Covered by another bill or external provider'}[bill.subscription_state] }}{% if bill.subscription_state == 'covered' %}<br>Covered by {{ bill.coverage_label or covering_bills.get(bill.covered_by_bill_id, 'linked bill') }}{% endif %}{% endif %}</td>
+<td>${{ net_amount_text(bill.amount_cents) }}{% if not bill.charge_is_owed %}<br>Reference only{% endif %}</td>
+<td>{{ bill.due_date }}{% if not bill.charge_is_owed %}<br>Placeholder / included charge{% endif %}</td>
+<td>{% if bill.charge_is_owed %}{{ bill.funding_deadline }}<br>{{ bill.funding_buffer_days }} calendar day(s) before due{% else %}Not required{% endif %}</td>
+<td>${{ net_amount_text(bill.funding_needed_cents) }}{% if bill.subscription_state != 'active' and bill.charge_is_owed %}<br>Unpaid charge retained{% endif %}</td>
+<td>{% if bill.subscription_state == 'covered' and not bill.charge_is_owed %}Via {{ bill.coverage_label or covering_bills.get(bill.covered_by_bill_id, 'linked bill') }}{% else %}{{ bill.payment_account.name if bill.payment_account else 'Unassigned' }}{% endif %}</td>
+<td>{% if bill.subscription_schedule_id %}<a href="{{ url_for('bills.recurrence', bill_id=bill.id) }}">Recurrence settings</a>{% else %}<a href="{{ url_for('bills.index', bill_id=bill.id) }}">Edit</a>{% if bill.kind == 'subscription' %}<br><a href="{{ url_for('bills.subscription', bill_id=bill.id) }}">Subscription settings</a><br><a href="{{ url_for('bills.recurrence', bill_id=bill.id) }}">Enable recurrence</a>{% endif %}{% endif %}</td></tr>
 {% else %}<tr><td colspan="7">{{ 'No bills recorded yet.' if kind == 'bill' else 'No subscriptions recorded yet.' }}</td></tr>{% endfor %}
 </tbody></table>
 </section>
 {% endfor %}
 {% endif %}
 <h2>{{ 'Edit ' + editing.name if editing else 'Add one bill or subscription occurrence' }}</h2>
-<p>{{ 'Changes update this existing obligation and recalculate its funding deadline.' if editing else 'This adds one obligation, not a recurring schedule.' }} Deletion and subscription status controls are not available yet.</p>
+<p>{{ 'Changes update this existing obligation and recalculate its funding deadline.' if editing else 'Choose Monthly or Yearly for a recurring subscription, or One-time for a single obligation.' }} Deletion is not available yet.</p>
 <form method="post">
 <input type="hidden" name="token" value="{{ token }}">
 <label>Type <select name="kind" required>
 <option value="bill" {% if values.get('kind', 'bill') == 'bill' %}selected{% endif %}>Bill</option>
 <option value="subscription" {% if values.get('kind') == 'subscription' %}selected{% endif %}>Subscription</option>
 </select></label>
+{% if not editing %}<label>Subscription recurrence <select name="recurrence"><option value="once" {% if values.get('recurrence', 'once') == 'once' %}selected{% endif %}>One-time</option><option value="monthly" {% if values.get('recurrence') == 'monthly' %}selected{% endif %}>Monthly</option><option value="yearly" {% if values.get('recurrence') == 'yearly' %}selected{% endif %}>Yearly</option></select></label><p>Recurrence applies to Subscriptions only. The due date below anchors the schedule.</p>{% endif %}
 <label>Payment account <select name="payment_account_id">
 <option value="">Unassigned</option>
 {% for account in accounts %}<option value="{{ account.id }}" {% if values.get('payment_account_id') == account.id %}selected{% endif %}>{{ account.name }}</option>{% endfor %}

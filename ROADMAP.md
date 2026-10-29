@@ -1,11 +1,15 @@
 # Roadmap
 
-This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. The current approved task adds obligation editing and named payment accounts alongside the income calendar and forecast, while preserving that baseline. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+This roadmap records approved project direction and implementation milestones. The importer/refactor baseline is verified through `22d38f3` with 45 tests. Monthly/yearly subscription recurrence, externally labeled coverage, and subscription controls are implemented, verified, and accepted by the user, as specified in `docs/PRODUCT.md`. Obligation editing/account support is also implemented. Older phase entries below retain context; they are not an accurate summary of completed refactoring.
+
+- [x] Implement approved monthly/yearly subscriptions within the selected forecast horizon, separate charge history, future-only amount changes, inactive/covered suppression, and visible externally covered subscriptions. Existing entries opt in explicitly. User visual acceptance recorded on 2026-10-29; see `docs/PRODUCT.md` for the durable contract.
+
+Product direction: expected incoming/outgoing amounts and timing, with later APR/APY-informed money placement. Rate behavior is not yet scoped. Separate user logins are outside product scope; deployment access protection remains a separate decision.
 
 ## Current Milestone - Income Calendar Persistence Foundation
 
 - [x] Add approved obligation editing and named payment-account creation/renaming, optional account assignment, identity preservation, and migration/recovery coverage.
-- [ ] Next separate slice: subscription inactive/covered behavior, preserving real unpaid obligations and requiring amount/date confirmation on reactivation. Implementation scope still needs approval.
+- [x] Add approved subscription inactive/covered behavior, explicit owed-versus-placeholder decisions, coverage links, confirmed reactivation, retained unpaid occurrences, and private confirmation history.
 
 - [x] Add approved Bill/Subscription classification and separate deadline-sorted sections while preserving existing obligations as Bills. Recurrence remains deferred; editing is implemented in the following slice.
 

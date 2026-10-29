@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscription recurrence</title>
+<style>body{font-family:Arial,sans-serif;max-width:850px;margin:2rem auto;padding:1rem}label{display:block;margin:1rem 0}input:not([type=checkbox]),select{display:block;padding:.5rem}[role=alert]{color:#a00}</style>
+</head><body>
+<a href="{{ url_for('bills.index') }}">Back to bills and subscriptions</a>
+<h1>Recurrence: {{ record.name }}</h1>
+<p>Enter this subscription once. Charges appear automatically within the selected forecast window, up to 365 days. Each charge is a separate planning record; no bank payment is initiated.</p>
+<p>Changes affect charges after today only. Charges due today or earlier remain unchanged, including unpaid charges. Inactive and Covered stop future separate funding needs but remain visible.</p>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<form method="post">
+<input type="hidden" name="token" value="{{ token }}">
+<label>Name <input name="name" maxlength="200" value="{{ values.get('name', record.name) }}" required></label>
+<label>Recurrence <select name="frequency" required>{% for value,label in [('monthly','Monthly'),('yearly','Yearly')] %}<option value="{{ value }}" {% if values.get('frequency') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>Amount per charge ($) <input name="amount" inputmode="decimal" value="{{ values.get('amount','') }}" required></label>
+<label>Funding buffer (calendar days) <input type="number" name="funding_buffer_days" min="0" value="{{ values.get('funding_buffer_days', '3') }}" required></label>
+<label>Payment account <select name="payment_account_id"><option value="">Unassigned</option>{% for account in accounts %}<option value="{{ account.id }}" {% if values.get('payment_account_id') == account.id %}selected{% endif %}>{{ account.name }}</option>{% endfor %}</select></label>
+<label>First charge date / new schedule starting date <input type="date" name="anchor_date" value="{{ values.get('anchor_date','') }}" required></label>
+<p>Keep this date when changing only the amount or status. To resume on a different date, enter the next charge date. Shorter months use their last day, returning to the original day when possible.</p>
+<label>Status <select name="state" required>{% for value,label in [('active','Active — I pay'),('inactive','Inactive / paused'),('covered','Covered by someone or something else')] %}<option value="{{ value }}" {% if values.get('state') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>Covered by (person or provider) <input name="coverage_label" maxlength="200" placeholder="Girlfriend, T-Mobile, etc." value="{{ values.get('coverage_label','') }}"></label>
+<label>Or link a covering bill (optional) <select name="covered_by_bill_id"><option value="">No bill link</option>{% for parent in parents %}<option value="{{ parent.id }}" {% if values.get('covered_by_bill_id') == parent.id %}selected{% endif %}>{{ parent.name }}</option>{% endfor %}</select></label>
+<label><input type="checkbox" name="confirm" value="yes" required {% if values.get('confirm') == 'yes' %}checked{% endif %}> I confirm this schedule, amount, and changes to future funding needs.</label>
+<button type="submit">{{ 'Save recurring subscription' if saved else 'Enable recurrence' }}</button>
+</form></body></html>

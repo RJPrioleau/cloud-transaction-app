@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added opt-in monthly/yearly subscription schedules, distinct saved charges within the selected 1–365 day forecast, month-end/leap-year anchoring, and schedule/date uniqueness. Amount/status changes affect only dates after today; inactive/covered schedules remain visible without future separate funding. Added external coverage labels and separate subscription sections, outgoing forecast totals, migration preservation, transactional SQLite table rebuilds, and recurrence/recovery tests. Existing subscriptions remain one-time until explicitly enabled.
+
+- Added subscription Active/Inactive/Covered controls with explicit unpaid-charge responsibility, reference-only placeholders, coverage links, and confirmed amount/date on activation. Retains old unpaid occurrences when creating a newly confirmed charge; prevents repeated creation for the same next date. Added transactional status history, migration-preservation, and recovery coverage. Existing entries remain Active/owed until explicitly classified.
+
 - Added editing for existing bills/subscriptions and optional named payment accounts. Accounts can be created and renamed; linked obligations retain their references. Edits preserve identity, update classification, and recalculate funding deadlines. Migration preserves existing records with unassigned accounts; added validation, foreign-key, migration, and backup recovery coverage. Subscription lifecycle controls remain separate.
 
 - Added Bill/Subscription classification to obligation entry and separate sections with shared funding-deadline behavior. Migration preserves existing records as Bills; added classification validation, grouping/order, migration-preservation, and backup recovery coverage. No recurring generation is introduced.

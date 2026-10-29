@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from database import create_database_engine, session_scope
 from income_models import IncomeSource, OfficialPayDate
+from subscription_repository import outgoing_forecast
 from income_repository import (
     create_income_source, create_official_pay_date,
     list_income_sources, list_official_pay_dates,
@@ -37,7 +38,8 @@ def forecast():
     try:
         with session_scope(engine) as db:
             projection = income_forecast(db, date.today(), days)
-        return render_template("income_forecast.html", projection=projection, days=days, net_amount_text=net_amount_text)
+            outgoing = outgoing_forecast(db, projection['start'], days)
+        return render_template("income_forecast.html", projection=projection, outgoing=outgoing, days=days, net_amount_text=net_amount_text)
     except SQLAlchemyError:
         current_app.logger.exception("Income forecast database unavailable")
         return render_template("income_calendar.html", unavailable=True), 503
